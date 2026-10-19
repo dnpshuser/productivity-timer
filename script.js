@@ -1,26 +1,42 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'dual_stopwatch_state_v3';
+  var STORAGE_KEY = 'dual_stopwatch_state_v4';
+
+  // Internal state
   var state = {
     active: 'paused', // 'productive' | 'leisure' | 'paused'
     prodMs: 0,
     leisureMs: 0,
-    lastTick: null
+    currentSessionStart: null // absolute timestamp when the current active stretch started
   };
 
-  // Safe localStorage bootstrap
+  // Safe localStorage loader
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       var parsed = JSON.parse(raw);
       state.prodMs = Math.max(0, Number(parsed.prodMs) || 0);
       state.leisureMs = Math.max(0, Number(parsed.leisureMs) || 0);
-      state.active = 'paused';
-      state.lastTick = null;
+      state.active = parsed.active || 'paused';
+      state.currentSessionStart = parsed.currentSessionStart || null;
+
+      // If it was left running when closed, immediately catch up the elapsed time
+      if (state.active !== 'paused' && state.currentSessionStart) {
+        var elapsed = Date.now() - state.currentSessionStart;
+        if (elapsed > 0) {
+          if (state.active === 'productive') {
+            state.prodMs += elapsed;
+          } else if (state.active === 'leisure') {
+            state.leisureMs += elapsed;
+          }
+        }
+        // Reset anchor to now so it continues forward
+        state.currentSessionStart = Date.now();
+      }
     }
   } catch (err) {
-    console.warn('Storage initial load error:', err);
+    console.warn('Storage load error:', err);
   }
 
   function initApp() {
@@ -58,16 +74,38 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           prodMs: state.prodMs,
           leisureMs: state.leisureMs,
-          active: state.active
+          active: state.active,
+          currentSessionStart: state.currentSessionStart
         }));
       } catch (err) {
         console.warn('Persistence failed:', err);
       }
     }
 
-    function flushDelta(now) {
-      if (state.active !== 'paused' && state.lastTick) {
-        var elapsed = now - state.lastTick;
+    // Calculates real-time totals including in-progress background duration
+    function getComputedTotals() {
+      var now = Date.now();
+      var prod = state.prodMs;
+      var leisure = state.leisureMs;
+
+      if (state.active !== 'paused' && state.currentSessionStart) {
+        var elapsed = now - state.currentSessionStart;
+        if (elapsed > 0) {
+          if (state.active === 'productive') {
+            prod += elapsed;
+          } else if (state.active === 'leisure') {
+            leisure += elapsed;
+          }
+        }
+      }
+      return { prod: prod, leisure: leisure };
+    }
+
+    // Syncs computed elapsed time back into permanent state
+    function settleCurrentSession() {
+      if (state.active !== 'paused' && state.currentSessionStart) {
+        var now = Date.now();
+        var elapsed = now - state.currentSessionStart;
         if (elapsed > 0) {
           if (state.active === 'productive') {
             state.prodMs += elapsed;
@@ -75,13 +113,15 @@
             state.leisureMs += elapsed;
           }
         }
+        state.currentSessionStart = now;
       }
-      state.lastTick = now;
     }
 
     function render() {
-      displayProd.textContent = formatTime(state.prodMs);
-      displayLeisure.textContent = formatTime(state.leisureMs);
+      var totals = getComputedTotals();
+
+      displayProd.textContent = formatTime(totals.prod);
+      displayLeisure.textContent = formatTime(totals.leisure);
 
       if (state.active === 'productive') {
         cardProd.className = 'stopwatch-card active-prod';
@@ -103,14 +143,14 @@
         toggleBtn.textContent = 'Start Tracking';
       }
 
-      var sum = state.prodMs + state.leisureMs;
+      var sum = totals.prod + totals.leisure;
       if (sum === 0) {
         ratioProd.style.width = '50%';
         ratioLeisure.style.width = '50%';
         prodPct.textContent = '0%';
         leisurePct.textContent = '0%';
       } else {
-        var pVal = Math.round((state.prodMs / sum) * 100);
+        var pVal = Math.round((totals.prod / sum) * 100);
         var lVal = 100 - pVal;
         ratioProd.style.width = pVal + '%';
         ratioLeisure.style.width = lVal + '%';
@@ -120,8 +160,7 @@
     }
 
     function handleToggle() {
-      var now = Date.now();
-      flushDelta(now);
+      settleCurrentSession();
 
       if (state.active === 'paused' || state.active === 'leisure') {
         state.active = 'productive';
@@ -129,7 +168,7 @@
         state.active = 'leisure';
       }
 
-      state.lastTick = now;
+      state.currentSessionStart = Date.now();
       persist();
       render();
     }
@@ -146,7 +185,7 @@
       state.active = 'paused';
       state.prodMs = 0;
       state.leisureMs = 0;
-      state.lastTick = null;
+      state.currentSessionStart = null;
       persist();
       render();
       closeModal();
@@ -163,25 +202,31 @@
       }
     });
 
-    document.addEventListener('visibilitychange', function () {
+    // Key fix: Trigger on window focus and visibility change
+    function handleWakeUp() {
       if (state.active !== 'paused') {
-        flushDelta(Date.now());
+        settleCurrentSession();
         persist();
-        render();
       }
-    });
+      render();
+    }
 
+    document.addEventListener('visibilitychange', handleWakeUp);
+    window.addEventListener('focus', handleWakeUp);
+    window.addEventListener('pageshow', handleWakeUp);
+
+    // Regular UI rendering tick when app is in foreground
     setInterval(function () {
       if (state.active !== 'paused') {
-        flushDelta(Date.now());
         render();
       }
-    }, 100);
+    }, 200);
 
+    // Initial render
     render();
   }
 
-  // Register Service Worker for PWA / APK installation
+  // Register Service Worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('./sw.js').catch(function (err) {
