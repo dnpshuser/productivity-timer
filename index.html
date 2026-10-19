@@ -48,14 +48,25 @@
       <button type="button" class="btn btn-reset" id="openResetBtn">Reset</button>
     </div>
 
-    <!-- Reset Verification Modal -->
+    <!-- Password Protected Reset Modal -->
     <div id="resetModal" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-title">Reset Both Timers?</div>
-        <div class="modal-subtitle">All accumulated Productive and Leisure hours will be cleared.</div>
+        <div class="modal-subtitle">Enter authorization password to clear all accumulated hours:</div>
+        
+        <input 
+          type="password" 
+          id="resetPassInput" 
+          class="reset-pass-input" 
+          placeholder="Enter password" 
+          autocomplete="off" 
+          autocapitalize="none"
+        />
+        <div id="passError" class="pass-error-msg">Incorrect password. Access denied.</div>
+
         <div class="modal-actions">
           <button type="button" class="btn" id="cancelResetBtn">Cancel</button>
-          <button type="button" class="btn btn-danger-confirm" id="confirmResetBtn">Yes, Reset</button>
+          <button type="button" class="btn btn-danger-confirm" id="confirmResetBtn">Verify & Reset</button>
         </div>
       </div>
     </div>

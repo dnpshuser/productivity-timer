@@ -1,17 +1,17 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'dual_stopwatch_state_v4';
+  var REQUIRED_PIN = 'sdrgb';
+  var STORAGE_KEY = 'dual_stopwatch_state_v6';
 
-  // Internal state
   var state = {
     active: 'paused', // 'productive' | 'leisure' | 'paused'
     prodMs: 0,
     leisureMs: 0,
-    currentSessionStart: null // absolute timestamp when the current active stretch started
+    currentSessionStart: null
   };
 
-  // Safe localStorage loader
+  // Safe localStorage recovery that handles app restarts and force-kills
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -21,7 +21,6 @@
       state.active = parsed.active || 'paused';
       state.currentSessionStart = parsed.currentSessionStart || null;
 
-      // If it was left running when closed, immediately catch up the elapsed time
       if (state.active !== 'paused' && state.currentSessionStart) {
         var elapsed = Date.now() - state.currentSessionStart;
         if (elapsed > 0) {
@@ -31,7 +30,6 @@
             state.leisureMs += elapsed;
           }
         }
-        // Reset anchor to now so it continues forward
         state.currentSessionStart = Date.now();
       }
     }
@@ -51,6 +49,8 @@
     var cancelResetBtn = document.getElementById('cancelResetBtn');
     var confirmResetBtn = document.getElementById('confirmResetBtn');
     var resetModal = document.getElementById('resetModal');
+    var resetPassInput = document.getElementById('resetPassInput');
+    var passError = document.getElementById('passError');
     var ratioProd = document.getElementById('ratioProd');
     var ratioLeisure = document.getElementById('ratioLeisure');
     var prodPct = document.getElementById('prodPct');
@@ -82,7 +82,6 @@
       }
     }
 
-    // Calculates real-time totals including in-progress background duration
     function getComputedTotals() {
       var now = Date.now();
       var prod = state.prodMs;
@@ -101,7 +100,6 @@
       return { prod: prod, leisure: leisure };
     }
 
-    // Syncs computed elapsed time back into permanent state
     function settleCurrentSession() {
       if (state.active !== 'paused' && state.currentSessionStart) {
         var now = Date.now();
@@ -174,27 +172,48 @@
     }
 
     function openModal() {
+      resetPassInput.value = '';
+      passError.classList.remove('show');
       resetModal.classList.add('active');
+      setTimeout(function () {
+        resetPassInput.focus();
+      }, 50);
     }
 
     function closeModal() {
+      resetPassInput.value = '';
+      passError.classList.remove('show');
       resetModal.classList.remove('active');
     }
 
-    function confirmReset() {
-      state.active = 'paused';
-      state.prodMs = 0;
-      state.leisureMs = 0;
-      state.currentSessionStart = null;
-      persist();
-      render();
-      closeModal();
+    function handlePasswordVerify() {
+      var entered = resetPassInput.value.trim().toLowerCase();
+      if (entered === REQUIRED_PIN) {
+        state.active = 'paused';
+        state.prodMs = 0;
+        state.leisureMs = 0;
+        state.currentSessionStart = null;
+        persist();
+        render();
+        closeModal();
+      } else {
+        passError.classList.add('show');
+        resetPassInput.value = '';
+        resetPassInput.focus();
+      }
     }
 
     toggleBtn.addEventListener('click', handleToggle);
     openResetBtn.addEventListener('click', openModal);
     cancelResetBtn.addEventListener('click', closeModal);
-    confirmResetBtn.addEventListener('click', confirmReset);
+    confirmResetBtn.addEventListener('click', handlePasswordVerify);
+
+    // Allow pressing "Enter" on virtual keyboard to submit password
+    resetPassInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        handlePasswordVerify();
+      }
+    });
 
     resetModal.addEventListener('click', function (e) {
       if (e.target === resetModal) {
@@ -202,8 +221,7 @@
       }
     });
 
-    // Key fix: Trigger on window focus and visibility change
-    function handleWakeUp() {
+    function syncTime() {
       if (state.active !== 'paused') {
         settleCurrentSession();
         persist();
@@ -211,22 +229,33 @@
       render();
     }
 
-    document.addEventListener('visibilitychange', handleWakeUp);
-    window.addEventListener('focus', handleWakeUp);
-    window.addEventListener('pageshow', handleWakeUp);
+    document.addEventListener('visibilitychange', syncTime);
+    window.addEventListener('focus', syncTime);
+    window.addEventListener('pageshow', syncTime);
 
-    // Regular UI rendering tick when app is in foreground
+    window.addEventListener('beforeunload', function () {
+      if (state.active !== 'paused') {
+        settleCurrentSession();
+        persist();
+      }
+    });
+
+    setInterval(function () {
+      if (state.active !== 'paused') {
+        settleCurrentSession();
+        persist();
+      }
+    }, 2000);
+
     setInterval(function () {
       if (state.active !== 'paused') {
         render();
       }
     }, 200);
 
-    // Initial render
     render();
   }
 
-  // Register Service Worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('./sw.js').catch(function (err) {

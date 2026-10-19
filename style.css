@@ -214,13 +214,45 @@ button.btn-reset:active {
 .modal-subtitle {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: 22px;
+  margin-bottom: 16px;
   line-height: 1.35;
+}
+
+.reset-pass-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: #0d1117;
+  color: var(--text-main);
+  font-size: 1rem;
+  text-align: center;
+  outline: none;
+  letter-spacing: 2px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.reset-pass-input:focus {
+  border-color: #1f6feb;
+}
+
+.pass-error-msg {
+  display: none;
+  color: var(--danger-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.pass-error-msg.show {
+  display: block;
 }
 
 .modal-actions {
   display: flex;
   gap: 10px;
+  margin-top: 18px;
 }
 
 .modal-actions button {
