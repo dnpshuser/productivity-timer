@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>Time Balance Stopwatch</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="widget-container">
+    <!-- Live Ratio Gauge -->
+    <div class="ratio-bar-wrap">
+      <div class="ratio-bar">
+        <div id="ratioProd" class="ratio-prod"></div>
+        <div id="ratioLeisure" class="ratio-leisure"></div>
+      </div>
+      <div class="ratio-legend">
+        <span class="prod-pct-txt">Productive: <span id="prodPct">0%</span></span>
+        <span class="leisure-pct-txt">Leisure: <span id="leisurePct">0%</span></span>
+      </div>
+    </div>
+
+    <!-- Productive Time Stopwatch -->
+    <div id="cardProd" class="stopwatch-card">
+      <div class="card-top prod-title">
+        <span>Productive Time</span>
+        <span id="badgeProd" class="status-badge">PAUSED</span>
+      </div>
+      <div id="displayProd" class="timer-display">00:00:00</div>
+    </div>
+
+    <!-- Leisure Time Stopwatch -->
+    <div id="cardLeisure" class="stopwatch-card">
+      <div class="card-top leisure-title">
+        <span>Leisure Time</span>
+        <span id="badgeLeisure" class="status-badge">PAUSED</span>
+      </div>
+      <div id="displayLeisure" class="timer-display">00:00:00</div>
+    </div>
+
+    <!-- Dual Action Controls -->
+    <div class="controls">
+      <button class="btn btn-toggle" id="toggleBtn">Start Tracking</button>
+      <button class="btn btn-reset" id="openResetBtn">Reset</button>
+    </div>
+
+    <!-- Reset Verification Modal -->
+    <div id="resetModal" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Reset Both Timers?</div>
+        <div class="modal-subtitle">All accumulated Productive and Leisure hours will be cleared.</div>
+        <div class="modal-actions">
+          <button class="btn" id="cancelResetBtn">Cancel</button>
+          <button class="btn btn-danger-confirm" id="confirmResetBtn">Yes, Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

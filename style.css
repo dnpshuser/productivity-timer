@@ -1,0 +1,238 @@
+:root {
+  --bg-color: #0d1117;
+  --card-bg: #161b22;
+  --border-color: #30363d;
+  --prod-color: #2ea043;
+  --prod-glow: rgba(46, 160, 67, 0.16);
+  --leisure-color: #f0883e;
+  --leisure-glow: rgba(240, 136, 62, 0.16);
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --danger-color: #f85149;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.widget-container {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ratio Balance Bar */
+.ratio-bar-wrap {
+  margin-bottom: 18px;
+}
+
+.ratio-bar {
+  height: 8px;
+  width: 100%;
+  background: #21262d;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+}
+
+.ratio-prod {
+  height: 100%;
+  width: 50%;
+  background: var(--prod-color);
+  transition: width 0.3s ease;
+}
+
+.ratio-leisure {
+  height: 100%;
+  width: 50%;
+  background: var(--leisure-color);
+  transition: width 0.3s ease;
+}
+
+.ratio-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.prod-pct-txt { color: var(--prod-color); }
+.leisure-pct-txt { color: var(--leisure-color); }
+
+/* Stopwatch Cards */
+.stopwatch-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.stopwatch-card.active-prod {
+  border-color: var(--prod-color);
+  background-color: var(--prod-glow);
+}
+
+.stopwatch-card.active-leisure {
+  border-color: var(--leisure-color);
+  background-color: var(--leisure-glow);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.prod-title { color: var(--prod-color); }
+.leisure-title { color: var(--leisure-color); }
+
+.status-badge {
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #21262d;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.active-prod .status-badge {
+  background: var(--prod-color);
+  color: #ffffff;
+}
+
+.active-leisure .status-badge {
+  background: var(--leisure-color);
+  color: #ffffff;
+}
+
+.timer-display {
+  font-size: 2.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: 6px;
+  letter-spacing: -0.5px;
+}
+
+/* Actions */
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+button.btn {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-main);
+  background: #21262d;
+  transition: background 0.15s, transform 0.08s;
+}
+
+button.btn:active {
+  transform: scale(0.97);
+}
+
+button.btn-toggle {
+  background: #1f6feb;
+  border-color: #388bfd;
+  color: #ffffff;
+  flex: 2;
+}
+
+button.btn-toggle:active {
+  background: #1158c7;
+}
+
+button.btn-reset {
+  flex: 1;
+  background: #21262d;
+  color: var(--danger-color);
+}
+
+button.btn-reset:active {
+  background: rgba(248, 81, 73, 0.18);
+}
+
+/* Verification Modal */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 17, 23, 0.95);
+  backdrop-filter: blur(4px);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+  z-index: 100;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-box {
+  width: 100%;
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+  line-height: 1.35;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-actions button {
+  flex: 1;
+}
+
+.btn-danger-confirm {
+  background: #da3633 !important;
+  border-color: #f85149 !important;
+  color: #ffffff !important;
+}
