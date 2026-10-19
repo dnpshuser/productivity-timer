@@ -1,0 +1,19 @@
+{
+  "name": "Time Balance Stopwatch",
+  "short_name": "TimeBalance",
+  "description": "Productive vs Leisure dual stopwatch",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2972/2972531.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
