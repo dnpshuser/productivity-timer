@@ -9,6 +9,7 @@
   --text-main: #f0f6fc;
   --text-muted: #8b949e;
   --danger-color: #f85149;
+  --primary-color: #1f6feb;
 }
 
 * {
@@ -163,7 +164,7 @@ button.btn:active {
 }
 
 button.btn-toggle {
-  background: #1f6feb;
+  background: var(--primary-color);
   border-color: #388bfd;
   color: #ffffff;
   flex: 2;
@@ -218,14 +219,14 @@ button.btn-reset:active {
   line-height: 1.35;
 }
 
-.reset-pass-input {
+.auth-pass-input {
   width: 100%;
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--border-color);
   background: #0d1117;
   color: var(--text-main);
-  font-size: 1rem;
+  font-size: 1.1rem;
   text-align: center;
   outline: none;
   letter-spacing: 2px;
@@ -233,8 +234,8 @@ button.btn-reset:active {
   -webkit-user-select: text;
 }
 
-.reset-pass-input:focus {
-  border-color: #1f6feb;
+.auth-pass-input:focus {
+  border-color: var(--primary-color);
 }
 
 .pass-error-msg {
@@ -259,8 +260,13 @@ button.btn-reset:active {
   flex: 1;
 }
 
-.btn-danger-confirm {
+.btn-action-confirm {
+  background: var(--primary-color);
+  border-color: #388bfd;
+  color: #ffffff;
+}
+
+.btn-action-confirm.danger-mode {
   background: #da3633 !important;
   border-color: #f85149 !important;
-  color: #ffffff !important;
 }

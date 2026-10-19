@@ -1,8 +1,7 @@
 (function () {
   'use strict';
 
-  var REQUIRED_PIN = 'sdrgb';
-  var STORAGE_KEY = 'dual_stopwatch_state_v6';
+  var STORAGE_KEY = 'dual_stopwatch_state_v7';
 
   var state = {
     active: 'paused', // 'productive' | 'leisure' | 'paused'
@@ -11,7 +10,10 @@
     currentSessionStart: null
   };
 
-  // Safe localStorage recovery that handles app restarts and force-kills
+  // Tracks which action is waiting for authentication: 'start_prod', 'pause_prod', or 'reset'
+  var pendingAction = null;
+
+  // Safe localStorage recovery
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -46,11 +48,13 @@
     var displayLeisure = document.getElementById('displayLeisure');
     var toggleBtn = document.getElementById('toggleBtn');
     var openResetBtn = document.getElementById('openResetBtn');
-    var cancelResetBtn = document.getElementById('cancelResetBtn');
-    var confirmResetBtn = document.getElementById('confirmResetBtn');
-    var resetModal = document.getElementById('resetModal');
-    var resetPassInput = document.getElementById('resetPassInput');
+    var cancelModalBtn = document.getElementById('cancelModalBtn');
+    var confirmModalBtn = document.getElementById('confirmModalBtn');
+    var authModal = document.getElementById('authModal');
+    var authPassInput = document.getElementById('authPassInput');
     var passError = document.getElementById('passError');
+    var modalTitle = document.getElementById('modalTitle');
+    var modalSubtitle = document.getElementById('modalSubtitle');
     var ratioProd = document.getElementById('ratioProd');
     var ratioLeisure = document.getElementById('ratioLeisure');
     var prodPct = document.getElementById('prodPct');
@@ -126,19 +130,19 @@
         cardLeisure.className = 'stopwatch-card';
         badgeProd.textContent = 'RUNNING';
         badgeLeisure.textContent = 'PAUSED';
-        toggleBtn.textContent = 'Switch to Leisure';
+        toggleBtn.textContent = 'Pause Productive (Switch to Leisure)';
       } else if (state.active === 'leisure') {
         cardProd.className = 'stopwatch-card';
         cardLeisure.className = 'stopwatch-card active-leisure';
         badgeProd.textContent = 'PAUSED';
         badgeLeisure.textContent = 'RUNNING';
-        toggleBtn.textContent = 'Switch to Productive';
+        toggleBtn.textContent = 'Start Productive Time';
       } else {
         cardProd.className = 'stopwatch-card';
         cardLeisure.className = 'stopwatch-card';
         badgeProd.textContent = 'PAUSED';
         badgeLeisure.textContent = 'PAUSED';
-        toggleBtn.textContent = 'Start Tracking';
+        toggleBtn.textContent = 'Start Productive Time';
       }
 
       var sum = totals.prod + totals.leisure;
@@ -157,66 +161,112 @@
       }
     }
 
-    function handleToggle() {
-      settleCurrentSession();
+    function openModal(action) {
+      pendingAction = action;
+      authPassInput.value = '';
+      passError.classList.remove('show');
 
-      if (state.active === 'paused' || state.active === 'leisure') {
-        state.active = 'productive';
-      } else {
-        state.active = 'leisure';
+      if (action === 'start_prod') {
+        modalTitle.textContent = 'Start Productive Time';
+        modalSubtitle.textContent = 'Enter password "1" to start tracking Productive Time:';
+        confirmModalBtn.textContent = 'Start';
+        confirmModalBtn.className = 'btn btn-action-confirm';
+      } else if (action === 'pause_prod') {
+        modalTitle.textContent = 'Pause Productive Time';
+        modalSubtitle.textContent = 'Enter password "0" to pause and switch to Leisure:';
+        confirmModalBtn.textContent = 'Pause';
+        confirmModalBtn.className = 'btn btn-action-confirm';
+      } else if (action === 'reset') {
+        modalTitle.textContent = 'Reset Both Timers?';
+        modalSubtitle.textContent = 'Enter authorization password to reset all hours to zero:';
+        confirmModalBtn.textContent = 'Verify & Reset';
+        confirmModalBtn.className = 'btn btn-action-confirm danger-mode';
       }
 
-      state.currentSessionStart = Date.now();
-      persist();
-      render();
-    }
-
-    function openModal() {
-      resetPassInput.value = '';
-      passError.classList.remove('show');
-      resetModal.classList.add('active');
+      authModal.classList.add('active');
       setTimeout(function () {
-        resetPassInput.focus();
+        authPassInput.focus();
       }, 50);
     }
 
     function closeModal() {
-      resetPassInput.value = '';
+      pendingAction = null;
+      authPassInput.value = '';
       passError.classList.remove('show');
-      resetModal.classList.remove('active');
+      authModal.classList.remove('active');
     }
 
-    function handlePasswordVerify() {
-      var entered = resetPassInput.value.trim().toLowerCase();
-      if (entered === REQUIRED_PIN) {
-        state.active = 'paused';
-        state.prodMs = 0;
-        state.leisureMs = 0;
-        state.currentSessionStart = null;
-        persist();
-        render();
-        closeModal();
-      } else {
-        passError.classList.add('show');
-        resetPassInput.value = '';
-        resetPassInput.focus();
+    function executeAuthorizedAction() {
+      var entered = authPassInput.value.trim().toLowerCase();
+
+      if (pendingAction === 'start_prod') {
+        if (entered === '1') {
+          settleCurrentSession();
+          state.active = 'productive';
+          state.currentSessionStart = Date.now();
+          persist();
+          render();
+          closeModal();
+        } else {
+          showError();
+        }
+      } else if (pendingAction === 'pause_prod') {
+        if (entered === '0') {
+          settleCurrentSession();
+          state.active = 'leisure';
+          state.currentSessionStart = Date.now();
+          persist();
+          render();
+          closeModal();
+        } else {
+          showError();
+        }
+      } else if (pendingAction === 'reset') {
+        if (entered === 'sdrgb') {
+          state.active = 'paused';
+          state.prodMs = 0;
+          state.leisureMs = 0;
+          state.currentSessionStart = null;
+          persist();
+          render();
+          closeModal();
+        } else {
+          showError();
+        }
       }
     }
 
-    toggleBtn.addEventListener('click', handleToggle);
-    openResetBtn.addEventListener('click', openModal);
-    cancelResetBtn.addEventListener('click', closeModal);
-    confirmResetBtn.addEventListener('click', handlePasswordVerify);
+    function showError() {
+      passError.classList.add('show');
+      authPassInput.value = '';
+      authPassInput.focus();
+    }
 
-    // Allow pressing "Enter" on virtual keyboard to submit password
-    resetPassInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        handlePasswordVerify();
+    // Toggle click intercepted by password requirements
+    toggleBtn.addEventListener('click', function () {
+      if (state.active === 'productive') {
+        openModal('pause_prod'); // Requires 0
+      } else {
+        openModal('start_prod'); // Requires 1
       }
     });
 
-    resetModal.addEventListener('click', function (e) {
-      if (e.target === resetModal) {
+    openResetBtn.addEventListener('click', function () {
+      openModal('reset'); // Requires sdrgb
+    });
+
+    cancelModalBtn.addEventListener('click', closeModal);
+    confirmModalBtn.addEventListener('click', executeAuthorizedAction);
+
+    // Support keyboard "Enter" key
+    authPassInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        executeAuthorizedAction();
+      }
+    });
+
+    authModal.addEventListener('click', function (e) {
+      if (e.target === authModal) {
         closeModal();
       }
     });

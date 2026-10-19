@@ -48,25 +48,25 @@
       <button type="button" class="btn btn-reset" id="openResetBtn">Reset</button>
     </div>
 
-    <!-- Password Protected Reset Modal -->
-    <div id="resetModal" class="modal-overlay">
+    <!-- Shared Password Authorization Modal -->
+    <div id="authModal" class="modal-overlay">
       <div class="modal-box">
-        <div class="modal-title">Reset Both Timers?</div>
-        <div class="modal-subtitle">Enter authorization password to clear all accumulated hours:</div>
+        <div class="modal-title" id="modalTitle">Authorization Required</div>
+        <div class="modal-subtitle" id="modalSubtitle">Enter password to proceed:</div>
         
         <input 
           type="password" 
-          id="resetPassInput" 
-          class="reset-pass-input" 
-          placeholder="Enter password" 
+          id="authPassInput" 
+          class="auth-pass-input" 
+          placeholder="Password" 
           autocomplete="off" 
           autocapitalize="none"
         />
         <div id="passError" class="pass-error-msg">Incorrect password. Access denied.</div>
 
         <div class="modal-actions">
-          <button type="button" class="btn" id="cancelResetBtn">Cancel</button>
-          <button type="button" class="btn btn-danger-confirm" id="confirmResetBtn">Verify & Reset</button>
+          <button type="button" class="btn" id="cancelModalBtn">Cancel</button>
+          <button type="button" class="btn btn-action-confirm" id="confirmModalBtn">Confirm</button>
         </div>
       </div>
     </div>
