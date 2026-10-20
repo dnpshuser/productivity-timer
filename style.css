@@ -2,10 +2,23 @@
   --bg-color: #0d1117;
   --card-bg: #161b22;
   --border-color: #30363d;
-  --prod-color: #2ea043;
-  --prod-glow: rgba(46, 160, 67, 0.16);
-  --leisure-color: #f0883e;
-  --leisure-glow: rgba(240, 136, 62, 0.16);
+  
+  /* Sleep: Warm Yellowish Tone */
+  --color-sleep: #e3b341;
+  --glow-sleep: rgba(227, 179, 65, 0.16);
+
+  /* Productivity: Green */
+  --color-prod: #2ea043;
+  --glow-prod: rgba(46, 160, 67, 0.16);
+
+  /* Mandate: Clean Bluish Tone */
+  --color-mandate: #388bfd;
+  --glow-mandate: rgba(56, 139, 253, 0.16);
+
+  /* Leisure: Pure Red */
+  --color-leisure: #f85149;
+  --glow-leisure: rgba(248, 81, 73, 0.16);
+
   --text-main: #f0f6fc;
   --text-muted: #8b949e;
   --danger-color: #f85149;
@@ -34,22 +47,23 @@ body {
 
 .widget-container {
   width: 100%;
-  max-width: 380px;
+  max-width: 410px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 22px;
-  padding: 22px;
+  padding: 20px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
   position: relative;
   overflow: hidden;
 }
 
+/* 4-Way Ratio Bar */
 .ratio-bar-wrap {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .ratio-bar {
-  height: 8px;
+  height: 9px;
   width: 100%;
   background: #21262d;
   border-radius: 999px;
@@ -57,100 +71,112 @@ body {
   display: flex;
 }
 
-.ratio-prod {
+.ratio-seg {
   height: 100%;
-  width: 50%;
-  background: var(--prod-color);
   transition: width 0.3s ease;
 }
 
-.ratio-leisure {
-  height: 100%;
-  width: 50%;
-  background: var(--leisure-color);
-  transition: width 0.3s ease;
+.seg-sleep { background: var(--color-sleep); width: 25%; }
+.seg-prod { background: var(--color-prod); width: 25%; }
+.seg-mandate { background: var(--color-mandate); width: 25%; }
+.seg-leisure { background: var(--color-leisure); width: 25%; }
+
+.ratio-legend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 4px;
+  column-gap: 8px;
+  margin-top: 8px;
+  font-size: 0.74rem;
 }
 
-.ratio-legend {
+.txt-sleep { color: var(--color-sleep); }
+.txt-prod { color: var(--color-prod); }
+.txt-mandate { color: var(--color-mandate); }
+.txt-leisure { color: var(--color-leisure); }
+
+.cards-list {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 10px;
 }
-
-.prod-pct-txt { color: var(--prod-color); }
-.leisure-pct-txt { color: var(--leisure-color); }
 
 .stopwatch-card {
   background: rgba(255, 255, 255, 0.02);
   border: 2px solid var(--border-color);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 14px;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.08s;
+}
+
+.stopwatch-card:active {
+  transform: scale(0.99);
+}
+
+.stopwatch-card.active-sleep {
+  border-color: var(--color-sleep);
+  background-color: var(--glow-sleep);
 }
 
 .stopwatch-card.active-prod {
-  border-color: var(--prod-color);
-  background-color: var(--prod-glow);
+  border-color: var(--color-prod);
+  background-color: var(--glow-prod);
+}
+
+.stopwatch-card.active-mandate {
+  border-color: var(--color-mandate);
+  background-color: var(--glow-mandate);
 }
 
 .stopwatch-card.active-leisure {
-  border-color: var(--leisure-color);
-  background-color: var(--leisure-glow);
+  border-color: var(--color-leisure);
+  background-color: var(--glow-leisure);
 }
 
 .card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
 }
 
-.prod-title { color: var(--prod-color); }
-.leisure-title { color: var(--leisure-color); }
-
 .status-badge {
-  font-size: 0.68rem;
-  padding: 3px 8px;
+  font-size: 0.65rem;
+  padding: 2px 7px;
   border-radius: 999px;
   background: #21262d;
   color: var(--text-muted);
   letter-spacing: 0.5px;
 }
 
-.active-prod .status-badge {
-  background: var(--prod-color);
-  color: #ffffff;
-}
-
-.active-leisure .status-badge {
-  background: var(--leisure-color);
-  color: #ffffff;
-}
+.active-sleep .status-badge { background: var(--color-sleep); color: #0d1117; font-weight: 700; }
+.active-prod .status-badge { background: var(--color-prod); color: #ffffff; }
+.active-mandate .status-badge { background: var(--color-mandate); color: #ffffff; }
+.active-leisure .status-badge { background: var(--color-leisure); color: #ffffff; }
 
 .timer-display {
-  font-size: 2.35rem;
+  font-size: 1.85rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  margin-top: 6px;
+  margin-top: 4px;
   letter-spacing: -0.5px;
 }
 
+/* Controls */
 .controls {
   display: flex;
   gap: 10px;
-  margin-top: 6px;
+  margin-top: 14px;
 }
 
 button.btn {
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 14px 10px;
+  padding: 13px 10px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -163,14 +189,14 @@ button.btn:active {
   transform: scale(0.97);
 }
 
-button.btn-toggle {
+button.btn-switch {
   background: var(--primary-color);
   border-color: #388bfd;
   color: #ffffff;
   flex: 2;
 }
 
-button.btn-toggle:active {
+button.btn-switch:active {
   background: #1158c7;
 }
 
@@ -184,6 +210,7 @@ button.btn-reset:active {
   background: rgba(248, 81, 73, 0.18);
 }
 
+/* Modal */
 .modal-overlay {
   position: absolute;
   inset: 0;
@@ -226,7 +253,7 @@ button.btn-reset:active {
   border: 1px solid var(--border-color);
   background: #0d1117;
   color: var(--text-main);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   text-align: center;
   outline: none;
   letter-spacing: 2px;

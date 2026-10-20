@@ -1,24 +1,36 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'dual_stopwatch_state_v7';
+  var STORAGE_KEY = 'stratified_stopwatch_state_v2';
+
+  // Secret internal mappings (never shown in UI)
+  var PASSWORDS = {
+    sleep: '0',
+    productivity: '1',
+    mandate: '2',
+    leisure: '3',
+    reset: 'sdrgb'
+  };
 
   var state = {
-    active: 'paused', // 'productive' | 'leisure' | 'paused'
+    active: 'paused', // 'sleep' | 'productivity' | 'mandate' | 'leisure' | 'paused'
+    sleepMs: 0,
     prodMs: 0,
+    mandateMs: 0,
     leisureMs: 0,
     currentSessionStart: null
   };
 
-  // Tracks which action is waiting for authentication: 'start_prod', 'pause_prod', or 'reset'
-  var pendingAction = null;
+  var pendingTarget = null; // target mode to activate, or 'reset', or 'generic_switch'
 
   // Safe localStorage recovery
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       var parsed = JSON.parse(raw);
+      state.sleepMs = Math.max(0, Number(parsed.sleepMs) || 0);
       state.prodMs = Math.max(0, Number(parsed.prodMs) || 0);
+      state.mandateMs = Math.max(0, Number(parsed.mandateMs) || 0);
       state.leisureMs = Math.max(0, Number(parsed.leisureMs) || 0);
       state.active = parsed.active || 'paused';
       state.currentSessionStart = parsed.currentSessionStart || null;
@@ -26,11 +38,10 @@
       if (state.active !== 'paused' && state.currentSessionStart) {
         var elapsed = Date.now() - state.currentSessionStart;
         if (elapsed > 0) {
-          if (state.active === 'productive') {
-            state.prodMs += elapsed;
-          } else if (state.active === 'leisure') {
-            state.leisureMs += elapsed;
-          }
+          if (state.active === 'sleep') state.sleepMs += elapsed;
+          else if (state.active === 'productivity') state.prodMs += elapsed;
+          else if (state.active === 'mandate') state.mandateMs += elapsed;
+          else if (state.active === 'leisure') state.leisureMs += elapsed;
         }
         state.currentSessionStart = Date.now();
       }
@@ -40,27 +51,43 @@
   }
 
   function initApp() {
+    var cardSleep = document.getElementById('cardSleep');
     var cardProd = document.getElementById('cardProd');
+    var cardMandate = document.getElementById('cardMandate');
     var cardLeisure = document.getElementById('cardLeisure');
+
+    var badgeSleep = document.getElementById('badgeSleep');
     var badgeProd = document.getElementById('badgeProd');
+    var badgeMandate = document.getElementById('badgeMandate');
     var badgeLeisure = document.getElementById('badgeLeisure');
+
+    var displaySleep = document.getElementById('displaySleep');
     var displayProd = document.getElementById('displayProd');
+    var displayMandate = document.getElementById('displayMandate');
     var displayLeisure = document.getElementById('displayLeisure');
-    var toggleBtn = document.getElementById('toggleBtn');
+
+    var ratioSleep = document.getElementById('ratioSleep');
+    var ratioProd = document.getElementById('ratioProd');
+    var ratioMandate = document.getElementById('ratioMandate');
+    var ratioLeisure = document.getElementById('ratioLeisure');
+
+    var pctSleep = document.getElementById('pctSleep');
+    var pctProd = document.getElementById('pctProd');
+    var pctMandate = document.getElementById('pctMandate');
+    var pctLeisure = document.getElementById('pctLeisure');
+
+    var switchBtn = document.getElementById('switchBtn');
     var openResetBtn = document.getElementById('openResetBtn');
     var cancelModalBtn = document.getElementById('cancelModalBtn');
     var confirmModalBtn = document.getElementById('confirmModalBtn');
+
     var authModal = document.getElementById('authModal');
     var authPassInput = document.getElementById('authPassInput');
     var passError = document.getElementById('passError');
     var modalTitle = document.getElementById('modalTitle');
     var modalSubtitle = document.getElementById('modalSubtitle');
-    var ratioProd = document.getElementById('ratioProd');
-    var ratioLeisure = document.getElementById('ratioLeisure');
-    var prodPct = document.getElementById('prodPct');
-    var leisurePct = document.getElementById('leisurePct');
 
-    if (!cardProd || !cardLeisure || !toggleBtn || !openResetBtn) {
+    if (!cardSleep || !cardProd || !cardMandate || !cardLeisure || !switchBtn) {
       return;
     }
 
@@ -76,7 +103,9 @@
     function persist() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          sleepMs: state.sleepMs,
           prodMs: state.prodMs,
+          mandateMs: state.mandateMs,
           leisureMs: state.leisureMs,
           active: state.active,
           currentSessionStart: state.currentSessionStart
@@ -88,20 +117,21 @@
 
     function getComputedTotals() {
       var now = Date.now();
-      var prod = state.prodMs;
-      var leisure = state.leisureMs;
+      var s = state.sleepMs;
+      var p = state.prodMs;
+      var m = state.mandateMs;
+      var l = state.leisureMs;
 
       if (state.active !== 'paused' && state.currentSessionStart) {
         var elapsed = now - state.currentSessionStart;
         if (elapsed > 0) {
-          if (state.active === 'productive') {
-            prod += elapsed;
-          } else if (state.active === 'leisure') {
-            leisure += elapsed;
-          }
+          if (state.active === 'sleep') s += elapsed;
+          else if (state.active === 'productivity') p += elapsed;
+          else if (state.active === 'mandate') m += elapsed;
+          else if (state.active === 'leisure') l += elapsed;
         }
       }
-      return { prod: prod, leisure: leisure };
+      return { sleep: s, prod: p, mandate: m, leisure: l };
     }
 
     function settleCurrentSession() {
@@ -109,11 +139,10 @@
         var now = Date.now();
         var elapsed = now - state.currentSessionStart;
         if (elapsed > 0) {
-          if (state.active === 'productive') {
-            state.prodMs += elapsed;
-          } else if (state.active === 'leisure') {
-            state.leisureMs += elapsed;
-          }
+          if (state.active === 'sleep') state.sleepMs += elapsed;
+          else if (state.active === 'productivity') state.prodMs += elapsed;
+          else if (state.active === 'mandate') state.mandateMs += elapsed;
+          else if (state.active === 'leisure') state.leisureMs += elapsed;
         }
         state.currentSessionStart = now;
       }
@@ -122,65 +151,77 @@
     function render() {
       var totals = getComputedTotals();
 
+      displaySleep.textContent = formatTime(totals.sleep);
       displayProd.textContent = formatTime(totals.prod);
+      displayMandate.textContent = formatTime(totals.mandate);
       displayLeisure.textContent = formatTime(totals.leisure);
 
-      if (state.active === 'productive') {
-        cardProd.className = 'stopwatch-card active-prod';
-        cardLeisure.className = 'stopwatch-card';
-        badgeProd.textContent = 'RUNNING';
-        badgeLeisure.textContent = 'PAUSED';
-        toggleBtn.textContent = 'Pause Productive (Switch to Leisure)';
-      } else if (state.active === 'leisure') {
-        cardProd.className = 'stopwatch-card';
-        cardLeisure.className = 'stopwatch-card active-leisure';
-        badgeProd.textContent = 'PAUSED';
-        badgeLeisure.textContent = 'RUNNING';
-        toggleBtn.textContent = 'Start Productive Time';
+      cardSleep.className = 'stopwatch-card' + (state.active === 'sleep' ? ' active-sleep' : '');
+      cardProd.className = 'stopwatch-card' + (state.active === 'productivity' ? ' active-prod' : '');
+      cardMandate.className = 'stopwatch-card' + (state.active === 'mandate' ? ' active-mandate' : '');
+      cardLeisure.className = 'stopwatch-card' + (state.active === 'leisure' ? ' active-leisure' : '');
+
+      badgeSleep.textContent = (state.active === 'sleep' ? 'RUNNING' : 'PAUSED');
+      badgeProd.textContent = (state.active === 'productivity' ? 'RUNNING' : 'PAUSED');
+      badgeMandate.textContent = (state.active === 'mandate' ? 'RUNNING' : 'PAUSED');
+      badgeLeisure.textContent = (state.active === 'leisure' ? 'RUNNING' : 'PAUSED');
+
+      if (state.active === 'paused') {
+        switchBtn.textContent = 'Start Tracking';
       } else {
-        cardProd.className = 'stopwatch-card';
-        cardLeisure.className = 'stopwatch-card';
-        badgeProd.textContent = 'PAUSED';
-        badgeLeisure.textContent = 'PAUSED';
-        toggleBtn.textContent = 'Start Productive Time';
+        var name = state.active.charAt(0).toUpperCase() + state.active.slice(1);
+        switchBtn.textContent = 'Active: ' + name + ' (Tap to Switch)';
       }
 
-      var sum = totals.prod + totals.leisure;
+      var sum = totals.sleep + totals.prod + totals.mandate + totals.leisure;
       if (sum === 0) {
-        ratioProd.style.width = '50%';
-        ratioLeisure.style.width = '50%';
-        prodPct.textContent = '0%';
-        leisurePct.textContent = '0%';
+        ratioSleep.style.width = '25%';
+        ratioProd.style.width = '25%';
+        ratioMandate.style.width = '25%';
+        ratioLeisure.style.width = '25%';
+        pctSleep.textContent = '0%';
+        pctProd.textContent = '0%';
+        pctMandate.textContent = '0%';
+        pctLeisure.textContent = '0%';
       } else {
-        var pVal = Math.round((totals.prod / sum) * 100);
-        var lVal = 100 - pVal;
-        ratioProd.style.width = pVal + '%';
-        ratioLeisure.style.width = lVal + '%';
-        prodPct.textContent = pVal + '%';
-        leisurePct.textContent = lVal + '%';
+        var sPct = Math.round((totals.sleep / sum) * 100);
+        var pPct = Math.round((totals.prod / sum) * 100);
+        var mPct = Math.round((totals.mandate / sum) * 100);
+        var lPct = 100 - (sPct + pPct + mPct);
+
+        ratioSleep.style.width = sPct + '%';
+        ratioProd.style.width = pPct + '%';
+        ratioMandate.style.width = mPct + '%';
+        ratioLeisure.style.width = lPct + '%';
+
+        pctSleep.textContent = sPct + '%';
+        pctProd.textContent = pPct + '%';
+        pctMandate.textContent = mPct + '%';
+        pctLeisure.textContent = lPct + '%';
       }
     }
 
-    function openModal(action) {
-      pendingAction = action;
+    function openModal(target) {
+      pendingTarget = target;
       authPassInput.value = '';
       passError.classList.remove('show');
 
-      if (action === 'start_prod') {
-        modalTitle.textContent = 'Start Productive Time';
-        modalSubtitle.textContent = 'Enter password "1" to start tracking Productive Time:';
-        confirmModalBtn.textContent = 'Start';
-        confirmModalBtn.className = 'btn btn-action-confirm';
-      } else if (action === 'pause_prod') {
-        modalTitle.textContent = 'Pause Productive Time';
-        modalSubtitle.textContent = 'Enter password "0" to pause and switch to Leisure:';
-        confirmModalBtn.textContent = 'Pause';
-        confirmModalBtn.className = 'btn btn-action-confirm';
-      } else if (action === 'reset') {
-        modalTitle.textContent = 'Reset Both Timers?';
+      if (target === 'reset') {
+        modalTitle.textContent = 'Reset All 4 Timers?';
         modalSubtitle.textContent = 'Enter authorization password to reset all hours to zero:';
         confirmModalBtn.textContent = 'Verify & Reset';
         confirmModalBtn.className = 'btn btn-action-confirm danger-mode';
+      } else if (target === 'generic_switch') {
+        modalTitle.textContent = 'Switch Category';
+        modalSubtitle.textContent = 'Enter password for the category you want to activate:';
+        confirmModalBtn.textContent = 'Activate';
+        confirmModalBtn.className = 'btn btn-action-confirm';
+      } else {
+        var catName = target.charAt(0).toUpperCase() + target.slice(1);
+        modalTitle.textContent = 'Switch to ' + catName;
+        modalSubtitle.textContent = 'Enter password to activate ' + catName + ':';
+        confirmModalBtn.textContent = 'Activate ' + catName;
+        confirmModalBtn.className = 'btn btn-action-confirm';
       }
 
       authModal.classList.add('active');
@@ -190,7 +231,7 @@
     }
 
     function closeModal() {
-      pendingAction = null;
+      pendingTarget = null;
       authPassInput.value = '';
       passError.classList.remove('show');
       authModal.classList.remove('active');
@@ -199,32 +240,13 @@
     function executeAuthorizedAction() {
       var entered = authPassInput.value.trim().toLowerCase();
 
-      if (pendingAction === 'start_prod') {
-        if (entered === '1') {
-          settleCurrentSession();
-          state.active = 'productive';
-          state.currentSessionStart = Date.now();
-          persist();
-          render();
-          closeModal();
-        } else {
-          showError();
-        }
-      } else if (pendingAction === 'pause_prod') {
-        if (entered === '0') {
-          settleCurrentSession();
-          state.active = 'leisure';
-          state.currentSessionStart = Date.now();
-          persist();
-          render();
-          closeModal();
-        } else {
-          showError();
-        }
-      } else if (pendingAction === 'reset') {
-        if (entered === 'sdrgb') {
+      // Reset action
+      if (pendingTarget === 'reset') {
+        if (entered === PASSWORDS.reset) {
           state.active = 'paused';
+          state.sleepMs = 0;
           state.prodMs = 0;
+          state.mandateMs = 0;
           state.leisureMs = 0;
           state.currentSessionStart = null;
           persist();
@@ -233,6 +255,41 @@
         } else {
           showError();
         }
+        return;
+      }
+
+      // Generic switch button: accepts 0, 1, 2, or 3 directly
+      if (pendingTarget === 'generic_switch') {
+        var matched = null;
+        for (var cat in PASSWORDS) {
+          if (cat !== 'reset' && entered === PASSWORDS[cat]) {
+            matched = cat;
+            break;
+          }
+        }
+        if (matched) {
+          settleCurrentSession();
+          state.active = matched;
+          state.currentSessionStart = Date.now();
+          persist();
+          render();
+          closeModal();
+        } else {
+          showError();
+        }
+        return;
+      }
+
+      // Direct card tap: requires password for that specific card
+      if (pendingTarget && PASSWORDS[pendingTarget] && entered === PASSWORDS[pendingTarget]) {
+        settleCurrentSession();
+        state.active = pendingTarget;
+        state.currentSessionStart = Date.now();
+        persist();
+        render();
+        closeModal();
+      } else {
+        showError();
       }
     }
 
@@ -242,23 +299,32 @@
       authPassInput.focus();
     }
 
-    // Toggle click intercepted by password requirements
-    toggleBtn.addEventListener('click', function () {
-      if (state.active === 'productive') {
-        openModal('pause_prod'); // Requires 0
-      } else {
-        openModal('start_prod'); // Requires 1
-      }
+    // Direct card tap handlers - allows jumping between ANY two categories
+    cardSleep.addEventListener('click', function () {
+      if (state.active !== 'sleep') openModal('sleep');
+    });
+    cardProd.addEventListener('click', function () {
+      if (state.active !== 'productivity') openModal('productivity');
+    });
+    cardMandate.addEventListener('click', function () {
+      if (state.active !== 'mandate') openModal('mandate');
+    });
+    cardLeisure.addEventListener('click', function () {
+      if (state.active !== 'leisure') openModal('leisure');
+    });
+
+    // Main switch button: opens prompt to enter any category PIN
+    switchBtn.addEventListener('click', function () {
+      openModal('generic_switch');
     });
 
     openResetBtn.addEventListener('click', function () {
-      openModal('reset'); // Requires sdrgb
+      openModal('reset');
     });
 
     cancelModalBtn.addEventListener('click', closeModal);
     confirmModalBtn.addEventListener('click', executeAuthorizedAction);
 
-    // Support keyboard "Enter" key
     authPassInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         executeAuthorizedAction();

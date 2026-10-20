@@ -1,7 +1,7 @@
 {
-  "name": "Time Balance Stopwatch",
+  "name": "Stratified Time Stopwatch",
   "short_name": "TimeBalance",
-  "description": "Productive vs Leisure dual stopwatch",
+  "description": "4-State stratified balance stopwatch: Sleep, Productivity, Mandate, Leisure",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

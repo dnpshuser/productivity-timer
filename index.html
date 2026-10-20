@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0d1117" />
-  <meta name="description" content="Dual stopwatch tracking Productive vs Leisure balance." />
+  <meta name="description" content="4-State stratified balance stopwatch." />
   <title>Time Balance Stopwatch</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
@@ -12,43 +12,68 @@
 <body>
 
   <div class="widget-container">
-    <!-- Live Ratio Gauge -->
+    <!-- 4-Way Ratio Gauge -->
     <div class="ratio-bar-wrap">
       <div class="ratio-bar">
-        <div id="ratioProd" class="ratio-prod"></div>
-        <div id="ratioLeisure" class="ratio-leisure"></div>
+        <div id="ratioSleep" class="ratio-seg seg-sleep"></div>
+        <div id="ratioProd" class="ratio-seg seg-prod"></div>
+        <div id="ratioMandate" class="ratio-seg seg-mandate"></div>
+        <div id="ratioLeisure" class="ratio-seg seg-leisure"></div>
       </div>
-      <div class="ratio-legend">
-        <span class="prod-pct-txt">Productive: <span id="prodPct">0%</span></span>
-        <span class="leisure-pct-txt">Leisure: <span id="leisurePct">0%</span></span>
+      <div class="ratio-legend-grid">
+        <span class="legend-item txt-sleep">Sleep: <b id="pctSleep">0%</b></span>
+        <span class="legend-item txt-prod">Prod: <b id="pctProd">0%</b></span>
+        <span class="legend-item txt-mandate">Mandate: <b id="pctMandate">0%</b></span>
+        <span class="legend-item txt-leisure">Leisure: <b id="pctLeisure">0%</b></span>
       </div>
     </div>
 
-    <!-- Productive Time Stopwatch -->
-    <div id="cardProd" class="stopwatch-card">
-      <div class="card-top prod-title">
-        <span>Productive Time</span>
-        <span id="badgeProd" class="status-badge">PAUSED</span>
+    <!-- 4 Stopwatch Cards (Tap any card to switch directly) -->
+    <div class="cards-list">
+      <!-- Sleep -->
+      <div id="cardSleep" class="stopwatch-card">
+        <div class="card-top txt-sleep">
+          <span>Sleep</span>
+          <span id="badgeSleep" class="status-badge">PAUSED</span>
+        </div>
+        <div id="displaySleep" class="timer-display">00:00:00</div>
       </div>
-      <div id="displayProd" class="timer-display">00:00:00</div>
+
+      <!-- Productivity -->
+      <div id="cardProd" class="stopwatch-card">
+        <div class="card-top txt-prod">
+          <span>Productivity</span>
+          <span id="badgeProd" class="status-badge">PAUSED</span>
+        </div>
+        <div id="displayProd" class="timer-display">00:00:00</div>
+      </div>
+
+      <!-- Mandate -->
+      <div id="cardMandate" class="stopwatch-card">
+        <div class="card-top txt-mandate">
+          <span>Mandate</span>
+          <span id="badgeMandate" class="status-badge">PAUSED</span>
+        </div>
+        <div id="displayMandate" class="timer-display">00:00:00</div>
+      </div>
+
+      <!-- Leisure -->
+      <div id="cardLeisure" class="stopwatch-card">
+        <div class="card-top txt-leisure">
+          <span>Leisure</span>
+          <span id="badgeLeisure" class="status-badge">PAUSED</span>
+        </div>
+        <div id="displayLeisure" class="timer-display">00:00:00</div>
+      </div>
     </div>
 
-    <!-- Leisure Time Stopwatch -->
-    <div id="cardLeisure" class="stopwatch-card">
-      <div class="card-top leisure-title">
-        <span>Leisure Time</span>
-        <span id="badgeLeisure" class="status-badge">PAUSED</span>
-      </div>
-      <div id="displayLeisure" class="timer-display">00:00:00</div>
-    </div>
-
-    <!-- Dual Action Controls -->
+    <!-- Controls -->
     <div class="controls">
-      <button type="button" class="btn btn-toggle" id="toggleBtn">Start Tracking</button>
+      <button type="button" class="btn btn-switch" id="switchBtn">Switch Category</button>
       <button type="button" class="btn btn-reset" id="openResetBtn">Reset</button>
     </div>
 
-    <!-- Shared Password Authorization Modal -->
+    <!-- Password Modal -->
     <div id="authModal" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-title" id="modalTitle">Authorization Required</div>
