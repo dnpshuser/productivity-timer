@@ -1,4 +1,4 @@
-const CACHE_NAME = 'time-balance-v10';
+const CACHE_NAME = 'time-balance-v14';
 
 const ASSETS = [
   './',
@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-First: Always request fresh code from GitHub; fallback to cache if offline
+// Network-First strategy ensures fresh downloads from GitHub Pages
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)

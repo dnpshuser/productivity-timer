@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0d1117" />
-  <meta name="description" content="4-State stratified balance stopwatch." />
+  <meta name="description" content="Hierarchical stratified balance stopwatch with nested sub-category percentage bars." />
   <title>Time Balance Stopwatch</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
@@ -12,59 +12,133 @@
 <body>
 
   <div class="widget-container">
-    <!-- 4-Way Ratio Gauge -->
+    <!-- Hierarchical Ratio Gauge -->
     <div class="ratio-bar-wrap">
       <div class="ratio-bar">
-        <div id="ratioSleep" class="ratio-seg seg-sleep"></div>
-        <div id="ratioProd" class="ratio-seg seg-prod"></div>
-        <div id="ratioMandate" class="ratio-seg seg-mandate"></div>
-        <div id="ratioLeisure" class="ratio-seg seg-leisure"></div>
+        <!-- Sleep Parent Segment -->
+        <div id="ratioSleep" class="ratio-parent-seg seg-sleep"></div>
+
+        <!-- Productivity Parent Segment with Nested Sub-Bars -->
+        <div id="ratioProd" class="ratio-parent-seg seg-prod-parent">
+          <div id="subBarProdHigh" class="sub-nested-bar seg-prod-high"></div>
+          <div id="subBarProdLow" class="sub-nested-bar seg-prod-low"></div>
+        </div>
+
+        <!-- Mandate Parent Segment with Nested Sub-Bars -->
+        <div id="ratioMandate" class="ratio-parent-seg seg-mandate-parent">
+          <div id="subBarMandateUniv" class="sub-nested-bar seg-mandate-univ"></div>
+          <div id="subBarMandateCond" class="sub-nested-bar seg-mandate-cond"></div>
+        </div>
+
+        <!-- Leisure Parent Segment with Nested Sub-Bars -->
+        <div id="ratioLeisure" class="ratio-parent-seg seg-leisure-parent">
+          <div id="subBarLeisureBreak" class="sub-nested-bar seg-leisure-break"></div>
+          <div id="subBarLeisureSpare" class="sub-nested-bar seg-leisure-spare"></div>
+        </div>
       </div>
+
+      <!-- Legend Grid -->
       <div class="ratio-legend-grid">
         <span class="legend-item txt-sleep">Sleep: <b id="pctSleep">0%</b></span>
-        <span class="legend-item txt-prod">Prod: <b id="pctProd">0%</b></span>
-        <span class="legend-item txt-mandate">Mandate: <b id="pctMandate">0%</b></span>
-        <span class="legend-item txt-leisure">Leisure: <b id="pctLeisure">0%</b></span>
+        <span class="legend-item txt-prod">Prod: <b id="pctProd">0%</b> (<span id="pctProdHigh">0%</span>/<span id="pctProdLow">0%</span>)</span>
+        <span class="legend-item txt-mandate">Mand: <b id="pctMandate">0%</b> (<span id="pctMandateUniv">0%</span>/<span id="pctMandateCond">0%</span>)</span>
+        <span class="legend-item txt-leisure">Leis: <b id="pctLeisure">0%</b> (<span id="pctLeisureBreak">0%</span>/<span id="pctLeisureSpare">0%</span>)</span>
       </div>
     </div>
 
-    <!-- 4 Stopwatch Cards (Tap any card to switch directly) -->
+    <!-- 4 Parent Domain Blocks -->
     <div class="cards-list">
-      <!-- Sleep -->
-      <div id="cardSleep" class="stopwatch-card">
-        <div class="card-top txt-sleep">
+
+      <!-- 1. Sleep (Solo) -->
+      <div id="cardSleep" class="parent-card solo-card">
+        <div class="card-head txt-sleep">
           <span>Sleep</span>
           <span id="badgeSleep" class="status-badge">PAUSED</span>
         </div>
         <div id="displaySleep" class="timer-display">00:00:00</div>
       </div>
 
-      <!-- Productivity -->
-      <div id="cardProd" class="stopwatch-card">
-        <div class="card-top txt-prod">
-          <span>Productivity</span>
-          <span id="badgeProd" class="status-badge">PAUSED</span>
+      <!-- 2. Productivity (Main Total on Left, High / Low on Right) -->
+      <div class="parent-card composite-card" id="parentProdCard">
+        <div id="cardProd" class="split-left">
+          <div class="card-head txt-prod">
+            <span>Productivity</span>
+            <span id="badgeProd" class="status-badge">PAUSED</span>
+          </div>
+          <div id="displayProd" class="timer-display">00:00:00</div>
         </div>
-        <div id="displayProd" class="timer-display">00:00:00</div>
+        <div class="split-right">
+          <div id="cardProdHigh" class="sub-cell">
+            <div class="sub-cell-head txt-prod-high">
+              <span>High</span>
+              <span id="badgeProdHigh" class="dot-badge"></span>
+            </div>
+            <div id="displayProdHigh" class="sub-timer-display">00:00:00</div>
+          </div>
+          <div id="cardProdLow" class="sub-cell">
+            <div class="sub-cell-head txt-prod-low">
+              <span>Low</span>
+              <span id="badgeProdLow" class="dot-badge"></span>
+            </div>
+            <div id="displayProdLow" class="sub-timer-display">00:00:00</div>
+          </div>
+        </div>
       </div>
 
-      <!-- Mandate -->
-      <div id="cardMandate" class="stopwatch-card">
-        <div class="card-top txt-mandate">
-          <span>Mandate</span>
-          <span id="badgeMandate" class="status-badge">PAUSED</span>
+      <!-- 3. Mandate (Main Total on Left, Universal / Conditional on Right) -->
+      <div class="parent-card composite-card" id="parentMandateCard">
+        <div id="cardMandate" class="split-left">
+          <div class="card-head txt-mandate">
+            <span>Mandate</span>
+            <span id="badgeMandate" class="status-badge">PAUSED</span>
+          </div>
+          <div id="displayMandate" class="timer-display">00:00:00</div>
         </div>
-        <div id="displayMandate" class="timer-display">00:00:00</div>
+        <div class="split-right">
+          <div id="cardMandateUniv" class="sub-cell">
+            <div class="sub-cell-head txt-mandate-univ">
+              <span>Universal</span>
+              <span id="badgeMandateUniv" class="dot-badge"></span>
+            </div>
+            <div id="displayMandateUniv" class="sub-timer-display">00:00:00</div>
+          </div>
+          <div id="cardMandateCond" class="sub-cell">
+            <div class="sub-cell-head txt-mandate-cond">
+              <span>Conditional</span>
+              <span id="badgeMandateCond" class="dot-badge"></span>
+            </div>
+            <div id="displayMandateCond" class="sub-timer-display">00:00:00</div>
+          </div>
+        </div>
       </div>
 
-      <!-- Leisure -->
-      <div id="cardLeisure" class="stopwatch-card">
-        <div class="card-top txt-leisure">
-          <span>Leisure</span>
-          <span id="badgeLeisure" class="status-badge">PAUSED</span>
+      <!-- 4. Leisure (Main Total on Left, Break / Spare on Right) -->
+      <div class="parent-card composite-card" id="parentLeisureCard">
+        <div id="cardLeisure" class="split-left">
+          <div class="card-head txt-leisure">
+            <span>Leisure</span>
+            <span id="badgeLeisure" class="status-badge">PAUSED</span>
+          </div>
+          <div id="displayLeisure" class="timer-display">00:00:00</div>
         </div>
-        <div id="displayLeisure" class="timer-display">00:00:00</div>
+        <div class="split-right">
+          <div id="cardLeisureBreak" class="sub-cell">
+            <div class="sub-cell-head txt-leisure-break">
+              <span>Break</span>
+              <span id="badgeLeisureBreak" class="dot-badge"></span>
+            </div>
+            <div id="displayLeisureBreak" class="sub-timer-display">00:00:00</div>
+          </div>
+          <div id="cardLeisureSpare" class="sub-cell">
+            <div class="sub-cell-head txt-leisure-spare">
+              <span>Spare</span>
+              <span id="badgeLeisureSpare" class="dot-badge"></span>
+            </div>
+            <div id="displayLeisureSpare" class="sub-timer-display">00:00:00</div>
+          </div>
+        </div>
       </div>
+
     </div>
 
     <!-- Controls -->
