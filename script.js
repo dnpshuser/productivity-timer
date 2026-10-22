@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'stratified_stopwatch_state_v6';
+  var STORAGE_KEY = 'stratified_stopwatch_state_v12';
 
   var PASSWORDS = {
     sleep: '0',
@@ -72,356 +72,321 @@
     console.warn('Storage load error:', err);
   }
 
-  function initApp() {
-    var cardSleep = document.getElementById('cardSleep');
-    var parentProdCard = document.getElementById('parentProdCard');
-    var parentMandateCard = document.getElementById('parentMandateCard');
-    var parentLeisureCard = document.getElementById('parentLeisureCard');
+  function formatTime(ms) {
+    var totalSec = Math.floor(ms / 1000);
+    var h = Math.floor(totalSec / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    var s = totalSec % 60;
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    return pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
 
-    var cardProd = document.getElementById('cardProd');
-    var cardProdHigh = document.getElementById('cardProdHigh');
-    var cardProdLow = document.getElementById('cardProdLow');
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        sleepMs: state.sleepMs,
+        prodBaseMs: state.prodBaseMs,
+        prodHighMs: state.prodHighMs,
+        prodLowMs: state.prodLowMs,
+        mandateBaseMs: state.mandateBaseMs,
+        mandateUnivMs: state.mandateUnivMs,
+        mandateCondMs: state.mandateCondMs,
+        leisureBaseMs: state.leisureBaseMs,
+        leisureBreakMs: state.leisureBreakMs,
+        leisureSpareMs: state.leisureSpareMs,
+        active: state.active,
+        currentSessionStart: state.currentSessionStart
+      }));
+    } catch (err) {
+      console.warn('Persistence failed:', err);
+    }
+  }
 
-    var cardMandate = document.getElementById('cardMandate');
-    var cardMandateUniv = document.getElementById('cardMandateUniv');
-    var cardMandateCond = document.getElementById('cardMandateCond');
+  function getComputedTotals() {
+    var now = Date.now();
+    var s = state.sleepMs;
+    var pb = state.prodBaseMs;
+    var ph = state.prodHighMs;
+    var pl = state.prodLowMs;
+    var mb = state.mandateBaseMs;
+    var mu = state.mandateUnivMs;
+    var mc = state.mandateCondMs;
+    var lb = state.leisureBaseMs;
+    var lbr = state.leisureBreakMs;
+    var lsp = state.leisureSpareMs;
 
-    var cardLeisure = document.getElementById('cardLeisure');
-    var cardLeisureBreak = document.getElementById('cardLeisureBreak');
-    var cardLeisureSpare = document.getElementById('cardLeisureSpare');
+    if (state.active !== 'paused' && state.currentSessionStart) {
+      var elapsed = now - state.currentSessionStart;
+      if (elapsed > 0) {
+        if (state.active === 'sleep') s += elapsed;
+        else if (state.active === 'productivity') pb += elapsed;
+        else if (state.active === 'prod_high') ph += elapsed;
+        else if (state.active === 'prod_low') pl += elapsed;
+        else if (state.active === 'mandate') mb += elapsed;
+        else if (state.active === 'mandate_univ') mu += elapsed;
+        else if (state.active === 'mandate_cond') mc += elapsed;
+        else if (state.active === 'leisure') lb += elapsed;
+        else if (state.active === 'leisure_break') lbr += elapsed;
+        else if (state.active === 'leisure_spare') lsp += elapsed;
+      }
+    }
 
-    var badgeSleep = document.getElementById('badgeSleep');
-    var badgeProd = document.getElementById('badgeProd');
-    var badgeMandate = document.getElementById('badgeMandate');
-    var badgeLeisure = document.getElementById('badgeLeisure');
+    return {
+      sleep: s,
+      prodTotal: pb + ph + pl, prodBase: pb, prodHigh: ph, prodLow: pl,
+      mandateTotal: mb + mu + mc, mandateBase: mb, mandateUniv: mu, mandateCond: mc,
+      leisureTotal: lb + lbr + lsp, leisureBase: lb, leisureBreak: lbr, leisureSpare: lsp
+    };
+  }
 
-    var displaySleep = document.getElementById('displaySleep');
-    var displayProd = document.getElementById('displayProd');
-    var displayProdHigh = document.getElementById('displayProdHigh');
-    var displayProdLow = document.getElementById('displayProdLow');
+  function settleCurrentSession() {
+    if (state.active !== 'paused' && state.currentSessionStart) {
+      var now = Date.now();
+      var elapsed = now - state.currentSessionStart;
+      if (elapsed > 0) {
+        if (state.active === 'sleep') state.sleepMs += elapsed;
+        else if (state.active === 'productivity') state.prodBaseMs += elapsed;
+        else if (state.active === 'prod_high') state.prodHighMs += elapsed;
+        else if (state.active === 'prod_low') state.prodLowMs += elapsed;
+        else if (state.active === 'mandate') state.mandateBaseMs += elapsed;
+        else if (state.active === 'mandate_univ') state.mandateUnivMs += elapsed;
+        else if (state.active === 'mandate_cond') state.mandateCondMs += elapsed;
+        else if (state.active === 'leisure') state.leisureBaseMs += elapsed;
+        else if (state.active === 'leisure_break') state.leisureBreakMs += elapsed;
+        else if (state.active === 'leisure_spare') state.leisureSpareMs += elapsed;
+      }
+      state.currentSessionStart = now;
+    }
+  }
 
-    var displayMandate = document.getElementById('displayMandate');
-    var displayMandateUniv = document.getElementById('displayMandateUniv');
-    var displayMandateCond = document.getElementById('displayMandateCond');
+  function updateEl(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
 
-    var displayLeisure = document.getElementById('displayLeisure');
-    var displayLeisureBreak = document.getElementById('displayLeisureBreak');
-    var displayLeisureSpare = document.getElementById('displayLeisureSpare');
+  function render() {
+    var totals = getComputedTotals();
 
-    var ratioSleep = document.getElementById('ratioSleep');
-    var ratioProd = document.getElementById('ratioProd');
-    var ratioMandate = document.getElementById('ratioMandate');
-    var ratioLeisure = document.getElementById('ratioLeisure');
+    updateEl('displaySleep', formatTime(totals.sleep));
+    updateEl('displayProd', formatTime(totals.prodTotal));
+    updateEl('displayProdHigh', formatTime(totals.prodHigh));
+    updateEl('displayProdLow', formatTime(totals.prodLow));
 
-    var subBarProdHigh = document.getElementById('subBarProdHigh');
-    var subBarProdLow = document.getElementById('subBarProdLow');
-    var subBarMandateUniv = document.getElementById('subBarMandateUniv');
-    var subBarMandateCond = document.getElementById('subBarMandateCond');
-    var subBarLeisureBreak = document.getElementById('subBarLeisureBreak');
-    var subBarLeisureSpare = document.getElementById('subBarLeisureSpare');
+    updateEl('displayMandate', formatTime(totals.mandateTotal));
+    updateEl('displayMandateUniv', formatTime(totals.mandateUniv));
+    updateEl('displayMandateCond', formatTime(totals.mandateCond));
 
-    var pctSleep = document.getElementById('pctSleep');
-    var pctProd = document.getElementById('pctProd');
-    var pctProdHigh = document.getElementById('pctProdHigh');
-    var pctProdLow = document.getElementById('pctProdLow');
-    var pctMandate = document.getElementById('pctMandate');
-    var pctMandateUniv = document.getElementById('pctMandateUniv');
-    var pctMandateCond = document.getElementById('pctMandateCond');
-    var pctLeisure = document.getElementById('pctLeisure');
-    var pctLeisureBreak = document.getElementById('pctLeisureBreak');
-    var pctLeisureSpare = document.getElementById('pctLeisureSpare');
+    updateEl('displayLeisure', formatTime(totals.leisureTotal));
+    updateEl('displayLeisureBreak', formatTime(totals.leisureBreak));
+    updateEl('displayLeisureSpare', formatTime(totals.leisureSpare));
+
+    var isProdActive = (state.active === 'productivity' || state.active === 'prod_high' || state.active === 'prod_low');
+    var isMandateActive = (state.active === 'mandate' || state.active === 'mandate_univ' || state.active === 'mandate_cond');
+    var isLeisureActive = (state.active === 'leisure' || state.active === 'leisure_break' || state.active === 'leisure_spare');
+
+    var setCls = function (id, cls) {
+      var el = document.getElementById(id);
+      if (el) el.className = cls;
+    };
+
+    setCls('cardSleep', 'parent-card solo-card' + (state.active === 'sleep' ? ' active-sleep' : ''));
+    setCls('parentProdCard', 'parent-card composite-card' + (isProdActive ? ' parent-prod-running' : ''));
+    setCls('parentMandateCard', 'parent-card composite-card' + (isMandateActive ? ' parent-mandate-running' : ''));
+    setCls('parentLeisureCard', 'parent-card composite-card' + (isLeisureActive ? ' parent-leisure-running' : ''));
+
+    setCls('cardProd', 'split-left' + (state.active === 'productivity' ? ' active-prod-base' : ''));
+    setCls('cardProdHigh', 'sub-cell' + (state.active === 'prod_high' ? ' active-prod-high' : ''));
+    setCls('cardProdLow', 'sub-cell' + (state.active === 'prod_low' ? ' active-prod-low' : ''));
+
+    setCls('cardMandate', 'split-left' + (state.active === 'mandate' ? ' active-mandate-base' : ''));
+    setCls('cardMandateUniv', 'sub-cell' + (state.active === 'mandate_univ' ? ' active-mandate-univ' : ''));
+    setCls('cardMandateCond', 'sub-cell' + (state.active === 'mandate_cond' ? ' active-mandate-cond' : ''));
+
+    setCls('cardLeisure', 'split-left' + (state.active === 'leisure' ? ' active-leisure-base' : ''));
+    setCls('cardLeisureBreak', 'sub-cell' + (state.active === 'leisure_break' ? ' active-leisure-break' : ''));
+    setCls('cardLeisureSpare', 'sub-cell' + (state.active === 'leisure_spare' ? ' active-leisure-spare' : ''));
+
+    updateEl('badgeSleep', state.active === 'sleep' ? 'RUNNING' : 'PAUSED');
+    updateEl('badgeProd', isProdActive ? 'RUNNING' : 'PAUSED');
+    updateEl('badgeMandate', isMandateActive ? 'RUNNING' : 'PAUSED');
+    updateEl('badgeLeisure', isLeisureActive ? 'RUNNING' : 'PAUSED');
 
     var switchBtn = document.getElementById('switchBtn');
-    var openResetBtn = document.getElementById('openResetBtn');
-    var cancelModalBtn = document.getElementById('cancelModalBtn');
-    var confirmModalBtn = document.getElementById('confirmModalBtn');
-
-    var authModal = document.getElementById('authModal');
-    var authPassInput = document.getElementById('authPassInput');
-    var passError = document.getElementById('passError');
-    var modalTitle = document.getElementById('modalTitle');
-    var modalSubtitle = document.getElementById('modalSubtitle');
-
-    if (!cardSleep || !cardProd || !switchBtn) return;
-
-    function formatTime(ms) {
-      var totalSec = Math.floor(ms / 1000);
-      var h = Math.floor(totalSec / 3600);
-      var m = Math.floor((totalSec % 3600) / 60);
-      var s = totalSec % 60;
-      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
-      return pad(h) + ':' + pad(m) + ':' + pad(s);
-    }
-
-    function persist() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          sleepMs: state.sleepMs,
-          prodBaseMs: state.prodBaseMs,
-          prodHighMs: state.prodHighMs,
-          prodLowMs: state.prodLowMs,
-          mandateBaseMs: state.mandateBaseMs,
-          mandateUnivMs: state.mandateUnivMs,
-          mandateCondMs: state.mandateCondMs,
-          leisureBaseMs: state.leisureBaseMs,
-          leisureBreakMs: state.leisureBreakMs,
-          leisureSpareMs: state.leisureSpareMs,
-          active: state.active,
-          currentSessionStart: state.currentSessionStart
-        }));
-      } catch (err) {
-        console.warn('Persistence failed:', err);
-      }
-    }
-
-    function getComputedTotals() {
-      var now = Date.now();
-      var s = state.sleepMs;
-      var pb = state.prodBaseMs;
-      var ph = state.prodHighMs;
-      var pl = state.prodLowMs;
-      var mb = state.mandateBaseMs;
-      var mu = state.mandateUnivMs;
-      var mc = state.mandateCondMs;
-      var lb = state.leisureBaseMs;
-      var lbr = state.leisureBreakMs;
-      var lsp = state.leisureSpareMs;
-
-      if (state.active !== 'paused' && state.currentSessionStart) {
-        var elapsed = now - state.currentSessionStart;
-        if (elapsed > 0) {
-          if (state.active === 'sleep') s += elapsed;
-          else if (state.active === 'productivity') pb += elapsed;
-          else if (state.active === 'prod_high') ph += elapsed;
-          else if (state.active === 'prod_low') pl += elapsed;
-          else if (state.active === 'mandate') mb += elapsed;
-          else if (state.active === 'mandate_univ') mu += elapsed;
-          else if (state.active === 'mandate_cond') mc += elapsed;
-          else if (state.active === 'leisure') lb += elapsed;
-          else if (state.active === 'leisure_break') lbr += elapsed;
-          else if (state.active === 'leisure_spare') lsp += elapsed;
-        }
-      }
-
-      var totalProd = pb + ph + pl;
-      var totalMandate = mb + mu + mc;
-      var totalLeisure = lb + lbr + lsp;
-
-      return {
-        sleep: s,
-        prodTotal: totalProd, prodBase: pb, prodHigh: ph, prodLow: pl,
-        mandateTotal: totalMandate, mandateBase: mb, mandateUniv: mu, mandateCond: mc,
-        leisureTotal: totalLeisure, leisureBase: lb, leisureBreak: lbr, leisureSpare: lsp
-      };
-    }
-
-    function settleCurrentSession() {
-      if (state.active !== 'paused' && state.currentSessionStart) {
-        var now = Date.now();
-        var elapsed = now - state.currentSessionStart;
-        if (elapsed > 0) {
-          if (state.active === 'sleep') state.sleepMs += elapsed;
-          else if (state.active === 'productivity') state.prodBaseMs += elapsed;
-          else if (state.active === 'prod_high') state.prodHighMs += elapsed;
-          else if (state.active === 'prod_low') state.prodLowMs += elapsed;
-          else if (state.active === 'mandate') state.mandateBaseMs += elapsed;
-          else if (state.active === 'mandate_univ') state.mandateUnivMs += elapsed;
-          else if (state.active === 'mandate_cond') state.mandateCondMs += elapsed;
-          else if (state.active === 'leisure') state.leisureBaseMs += elapsed;
-          else if (state.active === 'leisure_break') state.leisureBreakMs += elapsed;
-          else if (state.active === 'leisure_spare') state.leisureSpareMs += elapsed;
-        }
-        state.currentSessionStart = now;
-      }
-    }
-
-    function render() {
-      var totals = getComputedTotals();
-
-      displaySleep.textContent = formatTime(totals.sleep);
-      displayProd.textContent = formatTime(totals.prodTotal);
-      displayProdHigh.textContent = formatTime(totals.prodHigh);
-      displayProdLow.textContent = formatTime(totals.prodLow);
-
-      displayMandate.textContent = formatTime(totals.mandateTotal);
-      displayMandateUniv.textContent = formatTime(totals.mandateUniv);
-      displayMandateCond.textContent = formatTime(totals.mandateCond);
-
-      displayLeisure.textContent = formatTime(totals.leisureTotal);
-      displayLeisureBreak.textContent = formatTime(totals.leisureBreak);
-      displayLeisureSpare.textContent = formatTime(totals.leisureSpare);
-
-      var isProdActive = (state.active === 'productivity' || state.active === 'prod_high' || state.active === 'prod_low');
-      var isMandateActive = (state.active === 'mandate' || state.active === 'mandate_univ' || state.active === 'mandate_cond');
-      var isLeisureActive = (state.active === 'leisure' || state.active === 'leisure_break' || state.active === 'leisure_spare');
-
-      cardSleep.className = 'parent-card solo-card' + (state.active === 'sleep' ? ' active-sleep' : '');
-      parentProdCard.className = 'parent-card composite-card' + (isProdActive ? ' parent-prod-running' : '');
-      parentMandateCard.className = 'parent-card composite-card' + (isMandateActive ? ' parent-mandate-running' : '');
-      parentLeisureCard.className = 'parent-card composite-card' + (isLeisureActive ? ' parent-leisure-running' : '');
-
-      cardProd.className = 'split-left' + (state.active === 'productivity' ? ' active-prod-base' : '');
-      cardProdHigh.className = 'sub-cell' + (state.active === 'prod_high' ? ' active-prod-high' : '');
-      cardProdLow.className = 'sub-cell' + (state.active === 'prod_low' ? ' active-prod-low' : '');
-
-      cardMandate.className = 'split-left' + (state.active === 'mandate' ? ' active-mandate-base' : '');
-      cardMandateUniv.className = 'sub-cell' + (state.active === 'mandate_univ' ? ' active-mandate-univ' : '');
-      cardMandateCond.className = 'sub-cell' + (state.active === 'mandate_cond' ? ' active-mandate-cond' : '');
-
-      cardLeisure.className = 'split-left' + (state.active === 'leisure' ? ' active-leisure-base' : '');
-      cardLeisureBreak.className = 'sub-cell' + (state.active === 'leisure_break' ? ' active-leisure-break' : '');
-      cardLeisureSpare.className = 'sub-cell' + (state.active === 'leisure_spare' ? ' active-leisure-spare' : '');
-
-      badgeSleep.textContent = (state.active === 'sleep' ? 'RUNNING' : 'PAUSED');
-      badgeProd.textContent = (isProdActive ? 'RUNNING' : 'PAUSED');
-      badgeMandate.textContent = (isMandateActive ? 'RUNNING' : 'PAUSED');
-      badgeLeisure.textContent = (isLeisureActive ? 'RUNNING' : 'PAUSED');
-
+    if (switchBtn) {
       if (state.active === 'paused') {
         switchBtn.textContent = 'Start Tracking';
       } else {
         var cleanName = state.active.replace('_', ' ').toUpperCase();
         switchBtn.textContent = 'Active: ' + cleanName + ' (Tap to Switch)';
       }
-
-      // Grand total calculation for the 4 overarching domains
-      var grandTotal = totals.sleep + totals.prodTotal + totals.mandateTotal + totals.leisureTotal;
-
-      if (grandTotal === 0) {
-        ratioSleep.style.width = '25%'; ratioProd.style.width = '25%';
-        ratioMandate.style.width = '25%'; ratioLeisure.style.width = '25%';
-        subBarProdHigh.style.width = '0%'; subBarProdLow.style.width = '0%';
-        subBarMandateUniv.style.width = '0%'; subBarMandateCond.style.width = '0%';
-        subBarLeisureBreak.style.width = '0%'; subBarLeisureSpare.style.width = '0%';
-        pctSleep.textContent = '0%'; pctProd.textContent = '0%';
-        pctProdHigh.textContent = '0%'; pctProdLow.textContent = '0%';
-        pctMandate.textContent = '0%'; pctMandateUniv.textContent = '0%'; pctMandateCond.textContent = '0%';
-        pctLeisure.textContent = '0%'; pctLeisureBreak.textContent = '0%'; pctLeisureSpare.textContent = '0%';
-      } else {
-        // Parent domain global percentages
-        var sPct = Math.round((totals.sleep / grandTotal) * 100);
-        var pPct = Math.round((totals.prodTotal / grandTotal) * 100);
-        var mPct = Math.round((totals.mandateTotal / grandTotal) * 100);
-        var lPct = Math.max(0, 100 - (sPct + pPct + mPct));
-
-        ratioSleep.style.width = sPct + '%'; pctSleep.textContent = sPct + '%';
-        ratioProd.style.width = pPct + '%'; pctProd.textContent = pPct + '%';
-        ratioMandate.style.width = mPct + '%'; pctMandate.textContent = mPct + '%';
-        ratioLeisure.style.width = lPct + '%'; pctLeisure.textContent = lPct + '%';
-
-        // Nested sub-bars calculated relative to parent width (centered inside parent domain)
-        var setSubBarWidths = function (sub1, sub2, parentTotal, el1, el2, pctEl1, pctEl2) {
-          if (parentTotal === 0) {
-            el1.style.width = '0%';
-            el2.style.width = '0%';
-            pctEl1.textContent = '0%';
-            pctEl2.textContent = '0%';
-          } else {
-            var w1 = Math.round((sub1 / parentTotal) * 100);
-            var w2 = Math.round((sub2 / parentTotal) * 100);
-            el1.style.width = w1 + '%';
-            el2.style.width = w2 + '%';
-            // Global percentage for legend
-            pctEl1.textContent = Math.round((sub1 / grandTotal) * 100) + '%';
-            pctEl2.textContent = Math.round((sub2 / grandTotal) * 100) + '%';
-          }
-        };
-
-        setSubBarWidths(totals.prodHigh, totals.prodLow, totals.prodTotal, subBarProdHigh, subBarProdLow, pctProdHigh, pctProdLow);
-        setSubBarWidths(totals.mandateUniv, totals.mandateCond, totals.mandateTotal, subBarMandateUniv, subBarMandateCond, pctMandateUniv, pctMandateCond);
-        setSubBarWidths(totals.leisureBreak, totals.leisureSpare, totals.leisureTotal, subBarLeisureBreak, subBarLeisureSpare, pctLeisureBreak, pctLeisureSpare);
-      }
     }
 
-    function getFriendlyName(key) {
-      var map = {
-        sleep: 'Sleep', productivity: 'Productivity', prod_high: 'High', prod_low: 'Low',
-        mandate: 'Mandate', mandate_univ: 'Universal', mandate_cond: 'Conditional',
-        leisure: 'Leisure', leisure_break: 'Break', leisure_spare: 'Spare'
+    var grandTotal = totals.sleep + totals.prodTotal + totals.mandateTotal + totals.leisureTotal;
+    var setWidth = function (id, w) {
+      var el = document.getElementById(id);
+      if (el) el.style.width = w;
+    };
+
+    if (grandTotal === 0) {
+      setWidth('ratioSleep', '25%');
+      setWidth('ratioProd', '25%');
+      setWidth('ratioMandate', '25%');
+      setWidth('ratioLeisure', '25%');
+
+      setWidth('subBarProdHigh', '0%');
+      setWidth('subBarProdLow', '0%');
+      setWidth('subBarMandateUniv', '0%');
+      setWidth('subBarMandateCond', '0%');
+      setWidth('subBarLeisureBreak', '0%');
+      setWidth('subBarLeisureSpare', '0%');
+
+      updateEl('pctSleep', '0%');
+      updateEl('pctProd', '0%');
+      updateEl('pctProdHigh', '0%');
+      updateEl('pctProdLow', '0%');
+      updateEl('pctMandate', '0%');
+      updateEl('pctMandateUniv', '0%');
+      updateEl('pctMandateCond', '0%');
+      updateEl('pctLeisure', '0%');
+      updateEl('pctLeisureBreak', '0%');
+      updateEl('pctLeisureSpare', '0%');
+    } else {
+      var sPct = Math.round((totals.sleep / grandTotal) * 100);
+      var pPct = Math.round((totals.prodTotal / grandTotal) * 100);
+      var mPct = Math.round((totals.mandateTotal / grandTotal) * 100);
+      var lPct = Math.max(0, 100 - (sPct + pPct + mPct));
+
+      setWidth('ratioSleep', sPct + '%');
+      setWidth('ratioProd', pPct + '%');
+      setWidth('ratioMandate', mPct + '%');
+      setWidth('ratioLeisure', lPct + '%');
+
+      updateEl('pctSleep', sPct + '%');
+      updateEl('pctProd', pPct + '%');
+      updateEl('pctMandate', mPct + '%');
+      updateEl('pctLeisure', lPct + '%');
+
+      var setSub = function (sub1, sub2, parentTotal, el1Id, el2Id, pct1Id, pct2Id) {
+        if (parentTotal === 0) {
+          setWidth(el1Id, '0%');
+          setWidth(el2Id, '0%');
+          updateEl(pct1Id, '0%');
+          updateEl(pct2Id, '0%');
+        } else {
+          setWidth(el1Id, Math.round((sub1 / parentTotal) * 100) + '%');
+          setWidth(el2Id, Math.round((sub2 / parentTotal) * 100) + '%');
+          updateEl(pct1Id, Math.round((sub1 / grandTotal) * 100) + '%');
+          updateEl(pct2Id, Math.round((sub2 / grandTotal) * 100) + '%');
+        }
       };
-      return map[key] || 'Category';
+
+      setSub(totals.prodHigh, totals.prodLow, totals.prodTotal, 'subBarProdHigh', 'subBarProdLow', 'pctProdHigh', 'pctProdLow');
+      setSub(totals.mandateUniv, totals.mandateCond, totals.mandateTotal, 'subBarMandateUniv', 'subBarMandateCond', 'pctMandateUniv', 'pctMandateCond');
+      setSub(totals.leisureBreak, totals.leisureSpare, totals.leisureTotal, 'subBarLeisureBreak', 'subBarLeisureSpare', 'pctLeisureBreak', 'pctLeisureSpare');
     }
+  }
 
-    function openModal(target) {
-      pendingTarget = target;
-      authPassInput.value = '';
-      passError.classList.remove('show');
+  function getFriendlyName(key) {
+    var map = {
+      sleep: 'Sleep', productivity: 'Productivity', prod_high: 'High', prod_low: 'Low',
+      mandate: 'Mandate', mandate_univ: 'Universal', mandate_cond: 'Conditional',
+      leisure: 'Leisure', leisure_break: 'Break', leisure_spare: 'Spare'
+    };
+    return map[key] || 'Category';
+  }
 
-      if (target === 'reset') {
-        modalTitle.textContent = 'Reset All 10 Timers?';
-        modalSubtitle.textContent = 'Enter authorization password to reset all hours to zero:';
+  function openModal(target) {
+    pendingTarget = target;
+    var authPassInput = document.getElementById('authPassInput');
+    var passError = document.getElementById('passError');
+    var modalTitle = document.getElementById('modalTitle');
+    var modalSubtitle = document.getElementById('modalSubtitle');
+    var confirmModalBtn = document.getElementById('confirmModalBtn');
+    var authModal = document.getElementById('authModal');
+
+    if (authPassInput) authPassInput.value = '';
+    if (passError) passError.classList.remove('show');
+
+    if (target === 'reset') {
+      if (modalTitle) modalTitle.textContent = 'Reset All 10 Timers?';
+      if (modalSubtitle) modalSubtitle.textContent = 'Enter authorization password to reset all hours to zero:';
+      if (confirmModalBtn) {
         confirmModalBtn.textContent = 'Verify & Reset';
         confirmModalBtn.className = 'btn btn-action-confirm danger-mode';
-      } else if (target === 'generic_switch') {
-        modalTitle.textContent = 'Switch Category';
-        modalSubtitle.textContent = 'Enter password for the category you want to activate:';
+      }
+    } else if (target === 'generic_switch') {
+      if (modalTitle) modalTitle.textContent = 'Switch Category';
+      if (modalSubtitle) modalSubtitle.textContent = 'Enter password for the category you want to activate:';
+      if (confirmModalBtn) {
         confirmModalBtn.textContent = 'Activate';
         confirmModalBtn.className = 'btn btn-action-confirm';
-      } else {
-        var friendly = getFriendlyName(target);
-        modalTitle.textContent = 'Switch to ' + friendly;
-        modalSubtitle.textContent = 'Enter password to activate ' + friendly + ':';
+      }
+    } else {
+      var friendly = getFriendlyName(target);
+      if (modalTitle) modalTitle.textContent = 'Switch to ' + friendly;
+      if (modalSubtitle) modalSubtitle.textContent = 'Enter password to activate ' + friendly + ':';
+      if (confirmModalBtn) {
         confirmModalBtn.textContent = 'Activate ' + friendly;
         confirmModalBtn.className = 'btn btn-action-confirm';
       }
-
-      authModal.classList.add('active');
-      setTimeout(function () {
-        authPassInput.focus();
-      }, 50);
     }
 
-    function closeModal() {
-      pendingTarget = null;
+    if (authModal) authModal.classList.add('active');
+    setTimeout(function () {
+      if (authPassInput) authPassInput.focus();
+    }, 50);
+  }
+
+  function closeModal() {
+    pendingTarget = null;
+    var authPassInput = document.getElementById('authPassInput');
+    var passError = document.getElementById('passError');
+    var authModal = document.getElementById('authModal');
+    if (authPassInput) authPassInput.value = '';
+    if (passError) passError.classList.remove('show');
+    if (authModal) authModal.classList.remove('active');
+  }
+
+  function executeAuthorizedAction() {
+    var authPassInput = document.getElementById('authPassInput');
+    var passError = document.getElementById('passError');
+    if (!authPassInput) return;
+    var entered = authPassInput.value.trim().toLowerCase();
+
+    var showError = function () {
+      if (passError) passError.classList.add('show');
       authPassInput.value = '';
-      passError.classList.remove('show');
-      authModal.classList.remove('active');
+      authPassInput.focus();
+    };
+
+    if (pendingTarget === 'reset') {
+      if (entered === PASSWORDS.reset) {
+        state.active = 'paused';
+        state.sleepMs = 0;
+        state.prodBaseMs = 0; state.prodHighMs = 0; state.prodLowMs = 0;
+        state.mandateBaseMs = 0; state.mandateUnivMs = 0; state.mandateCondMs = 0;
+        state.leisureBaseMs = 0; state.leisureBreakMs = 0; state.leisureSpareMs = 0;
+        state.currentSessionStart = null;
+        persist();
+        render();
+        closeModal();
+      } else {
+        showError();
+      }
+      return;
     }
 
-    function executeAuthorizedAction() {
-      var entered = authPassInput.value.trim().toLowerCase();
-
-      if (pendingTarget === 'reset') {
-        if (entered === PASSWORDS.reset) {
-          state.active = 'paused';
-          state.sleepMs = 0;
-          state.prodBaseMs = 0; state.prodHighMs = 0; state.prodLowMs = 0;
-          state.mandateBaseMs = 0; state.mandateUnivMs = 0; state.mandateCondMs = 0;
-          state.leisureBaseMs = 0; state.leisureBreakMs = 0; state.leisureSpareMs = 0;
-          state.currentSessionStart = null;
-          persist();
-          render();
-          closeModal();
-        } else {
-          showError();
+    if (pendingTarget === 'generic_switch') {
+      var matched = null;
+      for (var cat in PASSWORDS) {
+        if (cat !== 'reset' && entered === PASSWORDS[cat]) {
+          matched = cat;
+          break;
         }
-        return;
       }
-
-      if (pendingTarget === 'generic_switch') {
-        var matched = null;
-        for (var cat in PASSWORDS) {
-          if (cat !== 'reset' && entered === PASSWORDS[cat]) {
-            matched = cat;
-            break;
-          }
-        }
-        if (matched) {
-          settleCurrentSession();
-          state.active = matched;
-          state.currentSessionStart = Date.now();
-          persist();
-          render();
-          closeModal();
-        } else {
-          showError();
-        }
-        return;
-      }
-
-      if (pendingTarget && PASSWORDS[pendingTarget] && entered === PASSWORDS[pendingTarget]) {
+      if (matched) {
         settleCurrentSession();
-        state.active = pendingTarget;
+        state.active = matched;
         state.currentSessionStart = Date.now();
         persist();
         render();
@@ -429,39 +394,72 @@
       } else {
         showError();
       }
+      return;
     }
 
-    function showError() {
-      passError.classList.add('show');
-      authPassInput.value = '';
-      authPassInput.focus();
+    if (pendingTarget && PASSWORDS[pendingTarget] && entered === PASSWORDS[pendingTarget]) {
+      settleCurrentSession();
+      state.active = pendingTarget;
+      state.currentSessionStart = Date.now();
+      persist();
+      render();
+      closeModal();
+    } else {
+      showError();
+    }
+  }
+
+  function initApp() {
+    // Robust click delegation directly on container
+    var container = document.querySelector('.widget-container');
+    if (container) {
+      container.addEventListener('click', function (e) {
+        // Find nearest clickable target
+        var targetEl = e.target.closest('[id]');
+        if (!targetEl) return;
+
+        var id = targetEl.id;
+
+        if (id === 'cardSleep') {
+          if (state.active !== 'sleep') openModal('sleep');
+        } else if (id === 'cardProd') {
+          if (state.active !== 'productivity') openModal('productivity');
+        } else if (id === 'cardProdHigh') {
+          if (state.active !== 'prod_high') openModal('prod_high');
+        } else if (id === 'cardProdLow') {
+          if (state.active !== 'prod_low') openModal('prod_low');
+        } else if (id === 'cardMandate') {
+          if (state.active !== 'mandate') openModal('mandate');
+        } else if (id === 'cardMandateUniv') {
+          if (state.active !== 'mandate_univ') openModal('mandate_univ');
+        } else if (id === 'cardMandateCond') {
+          if (state.active !== 'mandate_cond') openModal('mandate_cond');
+        } else if (id === 'cardLeisure') {
+          if (state.active !== 'leisure') openModal('leisure');
+        } else if (id === 'cardLeisureBreak') {
+          if (state.active !== 'leisure_break') openModal('leisure_break');
+        } else if (id === 'cardLeisureSpare') {
+          if (state.active !== 'leisure_spare') openModal('leisure_spare');
+        } else if (id === 'switchBtn') {
+          openModal('generic_switch');
+        } else if (id === 'openResetBtn') {
+          openModal('reset');
+        } else if (id === 'cancelModalBtn') {
+          closeModal();
+        } else if (id === 'confirmModalBtn') {
+          executeAuthorizedAction();
+        } else if (id === 'authModal') {
+          closeModal();
+        }
+      });
     }
 
-    cardSleep.addEventListener('click', function () { if (state.active !== 'sleep') openModal('sleep'); });
-    cardProd.addEventListener('click', function () { if (state.active !== 'productivity') openModal('productivity'); });
-    cardProdHigh.addEventListener('click', function () { if (state.active !== 'prod_high') openModal('prod_high'); });
-    cardProdLow.addEventListener('click', function () { if (state.active !== 'prod_low') openModal('prod_low'); });
-
-    cardMandate.addEventListener('click', function () { if (state.active !== 'mandate') openModal('mandate'); });
-    cardMandateUniv.addEventListener('click', function () { if (state.active !== 'mandate_univ') openModal('mandate_univ'); });
-    cardMandateCond.addEventListener('click', function () { if (state.active !== 'mandate_cond') openModal('mandate_cond'); });
-
-    cardLeisure.addEventListener('click', function () { if (state.active !== 'leisure') openModal('leisure'); });
-    cardLeisureBreak.addEventListener('click', function () { if (state.active !== 'leisure_break') openModal('leisure_break'); });
-    cardLeisureSpare.addEventListener('click', function () { if (state.active !== 'leisure_spare') openModal('leisure_spare'); });
-
-    switchBtn.addEventListener('click', function () { openModal('generic_switch'); });
-    openResetBtn.addEventListener('click', function () { openModal('reset'); });
-    cancelModalBtn.addEventListener('click', closeModal);
-    confirmModalBtn.addEventListener('click', executeAuthorizedAction);
-
-    authPassInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') executeAuthorizedAction();
-    });
-
-    authModal.addEventListener('click', function (e) {
-      if (e.target === authModal) closeModal();
-    });
+    var authPassInput = document.getElementById('authPassInput');
+    if (authPassInput) {
+      authPassInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') executeAuthorizedAction();
+      });
+    }
 
     function syncTime() {
       if (state.active !== 'paused') {

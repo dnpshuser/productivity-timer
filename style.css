@@ -69,7 +69,7 @@ body {
   overflow: hidden;
 }
 
-/* Ratio Bar with Nested Child Segmentation */
+/* Ratio Bar */
 .ratio-bar-wrap {
   margin-bottom: 12px;
 }
@@ -92,13 +92,11 @@ body {
   overflow: hidden;
 }
 
-/* Parent Base Backgrounds */
 .seg-sleep { background: var(--color-sleep); width: 25%; }
 .seg-prod-parent { background: var(--color-prod); width: 25%; }
 .seg-mandate-parent { background: var(--color-mandate); width: 25%; }
 .seg-leisure-parent { background: var(--color-leisure); width: 25%; }
 
-/* Sub-Bars nested centrally inside parent segment */
 .sub-nested-bar {
   height: 100%;
   transition: width 0.3s ease;
@@ -147,7 +145,7 @@ body {
   border: 1.5px solid var(--border-color);
   border-radius: 16px;
   overflow: hidden;
-  transition: border-color 0.2s, background-color 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 
 .solo-card {
@@ -176,7 +174,7 @@ body {
   transition: background-color 0.18s;
 }
 .split-left:active {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .split-right {
@@ -189,20 +187,25 @@ body {
   background: rgba(0, 0, 0, 0.15);
 }
 
-/* Sub-Cell - Strict Left-Alignment */
 .sub-cell {
   padding: 8px 10px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start; /* Aligns content to left */
-  text-align: left;        /* Aligns text to left */
+  align-items: flex-start;
+  text-align: left;
   min-width: 0;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  transition: border-color 0.18s, background-color 0.18s, transform 0.08s;
+  transition: border-color 0.18s, background-color 0.18s, transform 0.08s, box-shadow 0.18s;
+  pointer-events: auto;
+}
+
+/* Ensure inner elements do not steal clicks */
+.sub-cell > *, .split-left > *, .solo-card > * {
+  pointer-events: none;
 }
 
 .sub-cell:hover {
@@ -212,7 +215,7 @@ body {
 
 .sub-cell:active {
   transform: scale(0.97);
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .card-head {
@@ -225,13 +228,12 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* Sub-Header: Left label with right-anchored dot */
 .sub-cell-head {
   width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -252,7 +254,6 @@ body {
   letter-spacing: -0.5px;
 }
 
-/* Left-aligned sub-timer display directly below title */
 .sub-timer-display {
   font-size: 1.05rem;
   font-weight: 700;
@@ -290,57 +291,76 @@ body {
 .active-prod-high {
   border-color: var(--color-prod-high) !important;
   background-color: var(--glow-prod-high) !important;
-  box-shadow: 0 0 10px rgba(26, 127, 55, 0.35);
+  box-shadow: 0 0 10px rgba(26, 127, 55, 0.45) !important;
 }
-.active-prod-high .dot-badge { background: var(--color-prod-high); box-shadow: 0 0 6px var(--color-prod-high); }
+.active-prod-high .dot-badge { background: var(--color-prod-high) !important; box-shadow: 0 0 6px var(--color-prod-high) !important; }
 
 .active-prod-low {
   border-color: var(--color-prod-low) !important;
   background-color: var(--glow-prod-low) !important;
-  box-shadow: 0 0 10px rgba(86, 211, 100, 0.3);
+  box-shadow: 0 0 10px rgba(86, 211, 100, 0.4) !important;
 }
-.active-prod-low .dot-badge { background: var(--color-prod-low); box-shadow: 0 0 6px var(--color-prod-low); }
+.active-prod-low .dot-badge { background: var(--color-prod-low) !important; box-shadow: 0 0 6px var(--color-prod-low) !important; }
 
 .active-mandate-base { background-color: var(--glow-mandate) !important; }
 
 .active-mandate-univ {
   border-color: var(--color-mandate-univ) !important;
   background-color: var(--glow-mandate-univ) !important;
-  box-shadow: 0 0 10px rgba(31, 111, 235, 0.35);
+  box-shadow: 0 0 10px rgba(31, 111, 235, 0.45) !important;
 }
-.active-mandate-univ .dot-badge { background: var(--color-mandate-univ); box-shadow: 0 0 6px var(--color-mandate-univ); }
+.active-mandate-univ .dot-badge { background: var(--color-mandate-univ) !important; box-shadow: 0 0 6px var(--color-mandate-univ) !important; }
 
 .active-mandate-cond {
   border-color: var(--color-mandate-cond) !important;
   background-color: var(--glow-mandate-cond) !important;
-  box-shadow: 0 0 10px rgba(121, 192, 255, 0.3);
+  box-shadow: 0 0 10px rgba(121, 192, 255, 0.4) !important;
 }
-.active-mandate-cond .dot-badge { background: var(--color-mandate-cond); box-shadow: 0 0 6px var(--color-mandate-cond); }
+.active-mandate-cond .dot-badge { background: var(--color-mandate-cond) !important; box-shadow: 0 0 6px var(--color-mandate-cond) !important; }
 
 .active-leisure-base { background-color: var(--glow-leisure) !important; }
 
 .active-leisure-break {
   border-color: var(--color-leisure-break) !important;
   background-color: var(--glow-leisure-break) !important;
-  box-shadow: 0 0 10px rgba(218, 54, 51, 0.35);
+  box-shadow: 0 0 10px rgba(218, 54, 51, 0.45) !important;
 }
-.active-leisure-break .dot-badge { background: var(--color-leisure-break); box-shadow: 0 0 6px var(--color-leisure-break); }
+.active-leisure-break .dot-badge { background: var(--color-leisure-break) !important; box-shadow: 0 0 6px var(--color-leisure-break) !important; }
 
 .active-leisure-spare {
   border-color: var(--color-leisure-spare) !important;
   background-color: var(--glow-leisure-spare) !important;
-  box-shadow: 0 0 10px rgba(255, 123, 114, 0.3);
+  box-shadow: 0 0 10px rgba(255, 123, 114, 0.4) !important;
 }
-.active-leisure-spare .dot-badge { background: var(--color-leisure-spare); box-shadow: 0 0 6px var(--color-leisure-spare); }
+.active-leisure-spare .dot-badge { background: var(--color-leisure-spare) !important; box-shadow: 0 0 6px var(--color-leisure-spare) !important; }
 
-.parent-prod-running { border-color: rgba(46, 160, 67, 0.8) !important; }
-.parent-prod-running #badgeProd { background: var(--color-prod); color: #ffffff; }
+/* Parent Border Highlights */
+.parent-card.parent-prod-running {
+  border-color: var(--color-prod) !important;
+  box-shadow: 0 0 12px rgba(46, 160, 67, 0.35) !important;
+}
+.parent-card.parent-prod-running #badgeProd {
+  background: var(--color-prod) !important;
+  color: #ffffff !important;
+}
 
-.parent-mandate-running { border-color: rgba(56, 139, 253, 0.8) !important; }
-.parent-mandate-running #badgeMandate { background: var(--color-mandate); color: #ffffff; }
+.parent-card.parent-mandate-running {
+  border-color: var(--color-mandate) !important;
+  box-shadow: 0 0 12px rgba(56, 139, 253, 0.35) !important;
+}
+.parent-card.parent-mandate-running #badgeMandate {
+  background: var(--color-mandate) !important;
+  color: #ffffff !important;
+}
 
-.parent-leisure-running { border-color: rgba(248, 81, 73, 0.8) !important; }
-.parent-leisure-running #badgeLeisure { background: var(--color-leisure); color: #ffffff; }
+.parent-card.parent-leisure-running {
+  border-color: var(--color-leisure) !important;
+  box-shadow: 0 0 12px rgba(248, 81, 73, 0.35) !important;
+}
+.parent-card.parent-leisure-running #badgeLeisure {
+  background: var(--color-leisure) !important;
+  color: #ffffff !important;
+}
 
 /* Controls */
 .controls {
@@ -359,6 +379,7 @@ button.btn {
   color: var(--text-main);
   background: #21262d;
   transition: background 0.15s, transform 0.08s;
+  pointer-events: auto;
 }
 
 button.btn:active {
@@ -386,13 +407,14 @@ button.btn-reset:active {
   background: rgba(248, 81, 73, 0.18);
 }
 
-/* Modal */
+/* Modal - Safe pointer-events so hidden modal never intercepts clicks */
 .modal-overlay {
   position: absolute;
   inset: 0;
   background: rgba(13, 17, 23, 0.95);
   backdrop-filter: blur(4px);
   display: none;
+  pointer-events: none;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -402,7 +424,8 @@ button.btn-reset:active {
 }
 
 .modal-overlay.active {
-  display: flex;
+  display: flex !important;
+  pointer-events: auto !important;
 }
 
 .modal-box {
@@ -435,6 +458,7 @@ button.btn-reset:active {
   letter-spacing: 2px;
   user-select: text;
   -webkit-user-select: text;
+  pointer-events: auto;
 }
 
 .auth-pass-input:focus {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'time-balance-v14';
+const CACHE_NAME = 'time-balance-v40';
 
 const ASSETS = [
   './',
@@ -29,7 +29,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-First strategy ensures fresh downloads from GitHub Pages
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
